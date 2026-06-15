@@ -26,8 +26,11 @@ export default function AppSettings({ onClose }) {
   const t = useT();
   const api = window.electronAPI;
   const [autostart, setAutostart] = useState(null);   // null = loading / unavailable
-  const [updateReady, setUpdateReady] = useState(false);
-  const [installing, setInstalling] = useState(false);
+  const [updateReady,  setUpdateReady]  = useState(false);
+  const [updateStatus, setUpdateStatus] = useState('idle');
+  const [appVersion,   setAppVersion]   = useState('');
+  const [installing,   setInstalling]   = useState(false);
+  const [checking,     setChecking]     = useState(false);
 
   useEffect(() => {
     if (!api?.getAutostart) return;
@@ -35,12 +38,26 @@ export default function AppSettings({ onClose }) {
   }, []);
 
   useEffect(() => {
-    if (!api?.getUpdateReady) return;
-    const check = () => api.getUpdateReady().then(v => setUpdateReady(!!v)).catch(() => {});
-    check();
-    const id = setInterval(check, 30_000);
+    if (!api?.getAppVersion) return;
+    api.getAppVersion().then(v => setAppVersion(v)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!api?.getUpdateStatus) return;
+    const poll = () => {
+      api.getUpdateReady().then(v => setUpdateReady(!!v)).catch(() => {});
+      api.getUpdateStatus().then(v => setUpdateStatus(v || 'idle')).catch(() => {});
+    };
+    poll();
+    const id = setInterval(poll, 3_000);
     return () => clearInterval(id);
   }, []);
+
+  const handleCheckNow = async () => {
+    setChecking(true);
+    await api?.checkForUpdates?.().catch(() => {});
+    setTimeout(() => setChecking(false), 4_000);
+  };
 
   const toggleAutostart = async (v) => {
     setAutostart(v);
@@ -92,23 +109,37 @@ export default function AppSettings({ onClose }) {
             : <Toggle on={autostart} onChange={toggleAutostart} />,
         )}
 
-        {updateReady && row(
-          t('update_ready_label') || '🆕 Оновлення готове',
-          t('update_ready_desc') || 'Буде встановлено після закриття Dota 2. Або встановити зараз.',
-          <button
-            onClick={async () => {
-              setInstalling(true);
-              await api?.installUpdateNow?.().catch(() => {});
-            }}
-            disabled={installing}
-            style={{
-              background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8,
-              padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: installing ? 'default' : 'pointer',
-              opacity: installing ? .6 : 1, whiteSpace: 'nowrap',
-            }}
-          >
-            {installing ? '...' : (t('update_install_btn') || 'Встановити')}
-          </button>,
+        {row(
+          t('update_label') || 'Оновлення',
+          (() => {
+            if (!api?.getUpdateStatus) return t('update_unavail') || 'Недоступно в цій версії';
+            if (updateStatus === 'checking')    return t('update_checking')    || 'Перевіряємо наявність оновлень…';
+            if (updateStatus === 'downloading') return t('update_downloading') || 'Завантаження оновлення…';
+            if (updateStatus === 'available')   return t('update_available')   || 'Знайдено нову версію, завантажуємо…';
+            if (updateStatus === 'ready')       return t('update_ready_desc')  || 'Оновлення готове. Буде встановлено після закриття Dota 2.';
+            if (updateStatus === 'error')       return t('update_error')       || 'Помилка перевірки оновлень.';
+            // idle or up-to-date
+            return appVersion
+              ? (t('update_current') || `Версія ${appVersion} — актуальна`).replace('{v}', appVersion)
+              : (t('update_uptodate') || 'Версія актуальна');
+          })(),
+          updateReady
+            ? <button
+                onClick={async () => { setInstalling(true); await api?.installUpdateNow?.().catch(() => {}); }}
+                disabled={installing}
+                style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8,
+                  padding: '8px 14px', fontSize: 12.5, fontWeight: 700,
+                  cursor: installing ? 'default' : 'pointer', opacity: installing ? .6 : 1, whiteSpace: 'nowrap' }}>
+                {installing ? '…' : (t('update_install_btn') || 'Встановити')}
+              </button>
+            : <button
+                onClick={handleCheckNow}
+                disabled={checking || updateStatus === 'checking' || updateStatus === 'downloading'}
+                style={{ background: 'transparent', color: '#64748b', border: '1px solid #334155',
+                  borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 600,
+                  cursor: checking ? 'default' : 'pointer', opacity: checking ? .5 : 1, whiteSpace: 'nowrap' }}>
+                {checking ? '…' : (t('update_check_btn') || 'Перевірити')}
+              </button>,
         )}
       </div>
     </div>

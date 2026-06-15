@@ -110,7 +110,8 @@ function startBackend() {
 // Uses electron-updater + GitHub Releases. In dev mode updater is disabled.
 // Download happens in the background; install is DEFERRED until dota2.exe
 // is not running (checked every 5 min) so we never interrupt an active game.
-let _updateReady = false;
+let _updateReady  = false;
+let _updateStatus = 'idle';   // idle | checking | up-to-date | available | downloading | ready | error
 let _updateCheckInterval = null;
 let _dotaCheckInterval   = null;
 
@@ -140,11 +141,17 @@ function initAutoUpdater() {
   const { autoUpdater } = require('electron-updater');
 
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = false; // we handle install timing ourselves
+  autoUpdater.autoInstallOnAppQuit = false;
+
+  autoUpdater.on('checking-for-update',  () => { _updateStatus = 'checking'; });
+  autoUpdater.on('update-not-available', () => { _updateStatus = 'up-to-date'; });
+  autoUpdater.on('update-available',     () => { _updateStatus = 'available'; });
+  autoUpdater.on('download-progress',    () => { _updateStatus = 'downloading'; });
+  autoUpdater.on('error',                () => { _updateStatus = 'error'; });
 
   autoUpdater.on('update-downloaded', () => {
-    _updateReady = true;
-    // Try to install now if Dota is not running; otherwise wait.
+    _updateReady  = true;
+    _updateStatus = 'ready';
     isDotaRunning(running => {
       if (running) {
         tray?.setToolTip('DotaVIP — оновлення готове (буде встановлено після закриття Dota)');
@@ -155,16 +162,18 @@ function initAutoUpdater() {
     });
   });
 
-  autoUpdater.on('error', e => console.error('updater error', e?.message));
-
-  // Check on startup (after a short delay to let backend/UI load first).
+  // Check on startup after a short delay, then every 4 hours.
   setTimeout(() => autoUpdater.checkForUpdates(), 15_000);
-
-  // Then every 4 hours.
   _updateCheckInterval = setInterval(() => autoUpdater.checkForUpdates(), 4 * 60 * 60 * 1000);
+
+  ipcMain.handle('check-for-updates', () => {
+    autoUpdater.checkForUpdates().catch(() => {});
+  });
 }
 
-ipcMain.handle('get-update-ready', () => _updateReady);
+ipcMain.handle('get-app-version',   () => app.getVersion());
+ipcMain.handle('get-update-ready',  () => _updateReady);
+ipcMain.handle('get-update-status', () => _updateStatus);
 ipcMain.handle('install-update-now', () => {
   if (!_updateReady) return false;
   const { autoUpdater } = require('electron-updater');
