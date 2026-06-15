@@ -132,14 +132,21 @@ export default function AppSettings({ onClose }) {
                   cursor: installing ? 'default' : 'pointer', opacity: installing ? .6 : 1, whiteSpace: 'nowrap' }}>
                 {installing ? '…' : (t('update_install_btn') || 'Встановити')}
               </button>
-            : <button
-                onClick={handleCheckNow}
-                disabled={checking || updateStatus === 'checking' || updateStatus === 'downloading'}
-                style={{ background: 'transparent', color: '#64748b', border: '1px solid #334155',
-                  borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 600,
-                  cursor: checking ? 'default' : 'pointer', opacity: checking ? .5 : 1, whiteSpace: 'nowrap' }}>
-                {checking ? '…' : (t('update_check_btn') || 'Перевірити')}
-              </button>,
+            : updateStatus === 'up-to-date'
+              ? <button disabled style={{
+                  background: 'transparent', color: '#22c55e', border: '1px solid #22c55e',
+                  borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 700,
+                  cursor: 'default', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span>✓</span> {t('update_uptodate') || 'Актуальна'}
+                </button>
+              : <button
+                  onClick={handleCheckNow}
+                  disabled={checking || updateStatus === 'checking' || updateStatus === 'downloading'}
+                  style={{ background: 'transparent', color: '#64748b', border: '1px solid #334155',
+                    borderRadius: 8, padding: '8px 14px', fontSize: 12.5, fontWeight: 600,
+                    cursor: checking ? 'default' : 'pointer', opacity: checking ? .5 : 1, whiteSpace: 'nowrap' }}>
+                  {checking ? '…' : (t('update_check_btn') || 'Перевірити')}
+                </button>,
         )}
       </div>
     </div>

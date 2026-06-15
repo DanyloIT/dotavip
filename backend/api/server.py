@@ -36,6 +36,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any
 
+import cv2
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -361,7 +362,8 @@ def calibrate_get(width: int, height: int):
 
 @app.post("/calibrate")
 async def calibrate_post(request: Request):
-    from tracker import calibration
+    global _scoreboard_enemies
+    from tracker import calibration, scoreboard
     body = await request.json()
     clicks = {
         "level_first":   body["level_first"],
@@ -376,10 +378,28 @@ async def calibrate_post(request: Request):
         **clicks,
     )
     calibration.save_calibration(calib)
-    # Save screenshot + clicks so the UI can show a persistent preview
     if body.get("image"):
         calibration.save_snapshot(body["image"], int(body["width"]), int(body["height"]), clicks)
-    return {"status": "ok", "calibration": calib}
+
+    # Run OCR on the same screenshot used for calibration and return rows
+    rows: list[dict] = []
+    if body.get("image"):
+        try:
+            import base64 as _b64
+            import numpy as _np
+            img_bytes = _b64.b64decode(body["image"])
+            arr = _np.frombuffer(img_bytes, dtype=_np.uint8)
+            frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            if frame is not None:
+                enemy = _enemy_team()
+                rows = scoreboard.read_scoreboard(frame, calib, enemy)
+                if rows:
+                    _scoreboard_enemies = rows
+                    asyncio.create_task(_broadcast(_build_state()))
+        except Exception as e:
+            logger.warning("OCR on calibration image failed: %s", e)
+
+    return {"status": "ok", "calibration": calib, "rows": rows}
 
 @app.get("/calibrate/snapshot")
 def calibrate_snapshot():

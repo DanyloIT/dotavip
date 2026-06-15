@@ -6,7 +6,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useT } from './i18n';
 import { pub } from './pub';
-import TextEditor from './components/TextEditor';
 import AppSettings from './components/AppSettings';
 
 const API = 'http://127.0.0.1:8765';
@@ -146,31 +145,35 @@ function CalibrationModal({ calibrated, reload, onClose }) {
   const [msg, setMsg] = useState('');
   const [snapshot, setSnapshot] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
+  const [ocrRows, setOcrRows] = useState([]);
   const imgRef = useRef();
 
-  // Load saved snapshot on open (meta only — image is fetched by <img> directly)
+  // Load saved snapshot on open; add _ts=now so img always busts cache
   useEffect(() => {
     fetch(`${API}/calibrate/snapshot`)
       .then(r => r.json())
-      .then(d => { if (d.snapshot) setSnapshot(d.snapshot); })
+      .then(d => { if (d.snapshot) setSnapshot({ ...d.snapshot, _ts: Date.now() }); })
       .catch(() => {});
   }, []);
 
-  // "Зробити заново" wipes the saved calibration — confirm first.
   const handleStart = () => {
     if (calibrated && !window.confirm(t('recalibrate_confirm'))) return;
     start();
   };
 
   const start = async () => {
-    setClicks({}); setStepIdx(0); setImg(null); setMsg('');
+    setClicks({}); setStepIdx(0); setImg(null); setMsg(''); setOcrRows([]); setSuccessMsg('');
     const delay = 5; setPhase('counting'); setCount(delay);
     const iv = setInterval(() => setCount(c => c-1), 1000);
     try {
-      const r = await fetch(`${API}/calibrate/capture?delay=${delay}`); const d = await r.json(); clearInterval(iv);
-      setImg({ data:`data:image/png;base64,${d.image}`, width:d.width, height:d.height }); setPhase('clicking');
+      const r = await fetch(`${API}/calibrate/capture?delay=${delay}`);
+      const d = await r.json();
+      clearInterval(iv);
+      setImg({ data:`data:image/png;base64,${d.image}`, width:d.width, height:d.height });
+      setPhase('clicking');
     } catch { clearInterval(iv); setPhase('error'); setMsg(t('capture_fail')); }
   };
+
   const onClick = (e) => {
     if (phase!=='clicking' || !img) return;
     const r = imgRef.current.getBoundingClientRect();
@@ -180,31 +183,37 @@ function CalibrationModal({ calibrated, reload, onClose }) {
     setClicks(next);
     if (stepIdx < 4) setStepIdx(stepIdx+1); else save(next);
   };
+
   const save = async (c) => {
     setPhase('saving');
     try {
       const imageB64 = img.data.replace(/^data:image\/png;base64,/, '');
-      await fetch(`${API}/calibrate`, { method:'POST', headers:{'Content-Type':'application/json'},
+      const res = await fetch(`${API}/calibrate`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ width:img.width, height:img.height, image: imageB64,
           level_first:c.level_first, radiant_first:c.radiant_first, radiant_last:c.radiant_last,
-          dire_first:c.dire_first, dire_last:c.dire_last }) });
-      // Snapshot meta (no image — image served directly by backend as /calibrate/preview.png)
+          dire_first:c.dire_first, dire_last:c.dire_last }),
+      });
+      const data = await res.json();
       const ts = Date.now();
       setSnapshot({ width: img.width, height: img.height, clicks: c, _ts: ts });
-      // Try to get OCR result to show success message
-      try {
-        const ocrRes = await fetch(`${API}/scoreboard/read?delay=0`);
-        const ocrData = await ocrRes.json();
-        const heroes = ocrData?.results || [];
-        if (heroes.length) {
-          const lines = heroes.map(h => `• ${h.hero || '?'}  (рівень ${h.level ?? '?'})`).join('\n');
-          setSuccessMsg(`Суперників розпізнано: ${heroes.length}\n${lines}`);
-        } else {
-          setSuccessMsg('Точки збережено. Для перевірки розпізнавання — відкрий таблицю результатів у грі.');
-        }
-      } catch { setSuccessMsg('Точки збережено успішно.'); }
-      setPhase('done'); setMsg(t('calib_saved')); reload();
+      const rows = data?.rows || [];
+      setOcrRows(rows);
+      setPhase('confirm');
+      reload();
     } catch { setPhase('error'); setMsg(t('save_fail')); }
+  };
+
+  const confirmYes = () => {
+    const lines = ocrRows.map(h => `• ${h.hero || '?'}  (рівень ${h.level ?? '?'})`).join('\n');
+    setSuccessMsg(ocrRows.length
+      ? `Суперників розпізнано: ${ocrRows.length}\n${lines}`
+      : 'Точки збережено успішно.');
+    setPhase('done');
+  };
+
+  const confirmNo = () => {
+    start();
   };
 
   const ACCENT = '#38bdf8';
@@ -254,11 +263,43 @@ function CalibrationModal({ calibrated, reload, onClose }) {
             <img ref={imgRef} src={img.data} onClick={onClick} style={{ maxWidth:'100%', cursor:'crosshair', borderRadius:6, display:'block' }} />
           </>)}
           {phase==='saving' && <div style={{color:ACCENT, textAlign:'center', marginTop:14}}>{t('saving')}</div>}
-          {phase==='done'  && <div style={{color:'#22c55e', textAlign:'center', marginTop:14}}>✓ {msg} <button onClick={start} style={{...btn, marginLeft:10}}>{t('try_again')}</button></div>}
+
+          {phase==='confirm' && (
+            <div style={{ marginTop:18, background:'rgba(56,189,248,.07)', border:'1px solid rgba(56,189,248,.25)',
+              borderRadius:10, padding:'16px 20px' }}>
+              <div style={{ color:'#e2e8f0', fontWeight:700, fontSize:14, marginBottom:10 }}>
+                Розпізнані герої суперника:
+              </div>
+              {ocrRows.length === 0
+                ? <div style={{ color:'#f59e0b', fontSize:13, marginBottom:12 }}>
+                    Героїв не розпізнано — можливо, таблиця результатів була закрита.
+                  </div>
+                : <ul style={{ margin:'0 0 14px', padding:'0 0 0 18px', color:'#94a3b8', fontSize:13.5, lineHeight:2 }}>
+                    {ocrRows.map((h, i) => (
+                      <li key={i}><span style={{ color:'#e2e8f0', fontWeight:600 }}>{h.hero || '?'}</span>
+                        {' '}<span style={{ color:'#64748b' }}>— рівень {h.level ?? '?'}</span></li>
+                    ))}
+                  </ul>
+              }
+              <div style={{ color:'#cbd5e1', fontSize:13.5, marginBottom:14 }}>
+                Чи правильно розпізнано героїв суперника?
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                <button onClick={confirmYes} style={{ ...btn, background:'#16a34a', padding:'9px 22px' }}>
+                  ✓ Так, правильно
+                </button>
+                <button onClick={confirmNo} style={{ ...btn, background:'#7f1d1d', padding:'9px 22px' }}>
+                  ✗ Ні, пройти ще раз
+                </button>
+              </div>
+            </div>
+          )}
+
+          {phase==='done'  && <div style={{color:'#22c55e', textAlign:'center', marginTop:14}}>✓ {t('calib_saved')} <button onClick={start} style={{...btn, marginLeft:10}}>{t('try_again')}</button></div>}
           {phase==='error' && <div style={{color:'#ef4444', textAlign:'center', marginTop:14}}>{msg} <button onClick={start} style={{...btn, marginLeft:10}}>{t('try_again')}</button></div>}
 
-          {/* Persistent preview — shown whenever we have a saved snapshot and are NOT mid-calibration */}
-          {snapshot && phase !== 'clicking' && phase !== 'counting' && (
+          {/* Persistent preview — shown when snapshot exists and not mid-calibration */}
+          {snapshot && phase !== 'clicking' && phase !== 'counting' && phase !== 'saving' && (
             <CalibrationSnapshot snapshot={snapshot} successMsg={successMsg} />
           )}
         </div>
@@ -323,7 +364,6 @@ export default function SettingsApp() {
   const [status, setStatus] = useState(null);
   const [highlight, setHighlight] = useState(false);
   const [scale, setScale] = useState(1);
-  const [editing, setEditing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showCalib, setShowCalib] = useState(false);
   const reload = () => fetch(`${API}/setup/status`).then(r=>r.json()).then(setStatus).catch(()=>setStatus(null));
@@ -339,15 +379,11 @@ export default function SettingsApp() {
     <div style={{ fontFamily:'Segoe UI, system-ui, sans-serif', color:'#e2e8f0', background:'#0b0f17', minHeight:'100vh', position:'relative' }}>
       <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} } .blink{ animation:blink 1s infinite; }`}</style>
 
-      {editing && <TextEditor onClose={() => setEditing(false)} />}
       {showSettings && <AppSettings onClose={() => setShowSettings(false)} />}
       {showCalib && <CalibrationModal calibrated={status?.calibrated} reload={reload} onClose={() => setShowCalib(false)} />}
 
-      {/* top-right corner: settings gear + edit-text */}
-      <div style={{ position:'absolute', top:22, right:26, zIndex:10, display:'flex', gap:8 }}>
-        <button onClick={() => setEditing(true)} title="Редагувати весь текст"
-          style={{ background:'transparent', border:'1px solid #334155',
-            color:'#64748b', borderRadius:8, padding:'6px 10px', fontSize:12, cursor:'pointer' }}>✎ Текст</button>
+      {/* top-right corner: settings gear */}
+      <div style={{ position:'absolute', top:22, right:26, zIndex:10 }}>
         <button onClick={() => setShowSettings(true)} title={t('settings_title')}
           style={{ background:'transparent', border:'1px solid #334155',
             color:'#94a3b8', borderRadius:8, padding:'6px 11px', fontSize:15, cursor:'pointer', lineHeight:1 }}>⚙</button>
