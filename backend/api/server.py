@@ -320,7 +320,14 @@ async def calibrate_capture(delay: float = 5.0):
     from tracker import calibration
     await asyncio.sleep(delay)
     loop = asyncio.get_event_loop()
-    b64, w, h = await loop.run_in_executor(None, calibration.grab_png_base64)
+    try:
+        b64, w, h = await loop.run_in_executor(None, calibration.grab_png_base64)
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        logger.error("calibrate_capture failed:\n%s", tb)
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
     return {"image": b64, "width": w, "height": h}
 
 

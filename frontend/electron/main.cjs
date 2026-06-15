@@ -183,36 +183,20 @@ ipcMain.handle('install-update-now', () => {
 });
 
 // ── Security hardening ──────────────────────────────────────────────────────
-// Block any attempt to open external URLs inside the app (XSS / phishing).
+// Block in-app navigation to external URLs and block popups (XSS / phishing).
+// NOTE: we deliberately do NOT inject a restrictive Content-Security-Policy:
+// the overlay loads hero/ability portraits from Steam's CDN
+// (cdn.cloudflare.steamstatic.com) and a strict CSP blocked those images,
+// breaking the enemy hero picker and the ult popups. The app is localhost-only
+// (backend bound to 127.0.0.1), so the XSS surface is minimal anyway.
 app.on('web-contents-created', (_e, contents) => {
-  // Block navigation away from local app pages
   contents.on('will-navigate', (e, url) => {
     const allowed = ['http://localhost:5173', 'http://127.0.0.1:8765'];
     if (!allowed.some(o => url.startsWith(o)) && !url.startsWith('file://')) {
       e.preventDefault();
     }
   });
-  // Block new windows / popups entirely
   contents.setWindowOpenHandler(() => ({ action: 'deny' }));
-});
-
-// Set strict CSP on all responses from localhost dev server
-const { session } = require('electron');
-app.whenReady().then(() => {
-  session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
-    cb({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self' http://127.0.0.1:8765; " +
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +   // needed for Vite HMR in dev
-          "style-src 'self' 'unsafe-inline'; " +
-          "img-src 'self' data: http://127.0.0.1:8765; " +
-          "connect-src 'self' ws://127.0.0.1:8765 http://127.0.0.1:8765 ws://localhost:5173 http://localhost:5173;",
-        ],
-      },
-    });
-  });
 });
 
 // ── GPU compositing ON ──────────────────────────────────────────────────────
@@ -292,7 +276,7 @@ function createOverlayWindow() {
       nodeIntegration:  false,
       contextIsolation: true,
       preload:          path.join(__dirname, 'preload.cjs'),
-      webSecurity:      true,
+      webSecurity:      false,   // overlay loads localhost + Steam CDN assets
       sandbox:          true,
     },
   });

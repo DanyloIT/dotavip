@@ -169,6 +169,11 @@ function CalibrationModal({ calibrated, reload, onClose }) {
       const r = await fetch(`${API}/calibrate/capture?delay=${delay}`);
       const d = await r.json();
       clearInterval(iv);
+      if (!r.ok || !d.image) {
+        setPhase('error');
+        setMsg(d?.detail || t('capture_fail'));
+        return;
+      }
       setImg({ data:`data:image/png;base64,${d.image}`, width:d.width, height:d.height });
       setPhase('clicking');
     } catch { clearInterval(iv); setPhase('error'); setMsg(t('capture_fail')); }

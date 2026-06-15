@@ -40,16 +40,37 @@ _SNAPSHOT_META = _assets_dir() / "calibration_snapshot_meta.json"
 # ── capture ──────────────────────────────────────────────────────────────────
 
 def grab_png_base64(monitor_index: int = 1) -> tuple[str, int, int]:
-    """Capture the monitor and return (base64 png, width, height)."""
-    sc = ScreenCapture(monitor_index=monitor_index).open()
-    try:
-        frame = sc.capture_monitor()
-    finally:
-        sc.close()
-    h, w = frame.shape[:2]
-    ok, buf = cv2.imencode(".png", frame)
-    b64 = base64.b64encode(buf.tobytes()).decode("ascii")
-    return b64, w, h
+    """Capture the monitor and return (base64 png, width, height).
+
+    mss/GDI can fail transiently (e.g. right after Dota switches display mode,
+    or while the GPU briefly holds the surface). Retry a few times with a short
+    pause before giving up so a single hiccup doesn't break calibration.
+    """
+    import time as _t
+    last_err: Exception | None = None
+    for attempt in range(4):
+        try:
+            sc = ScreenCapture(monitor_index=monitor_index).open()
+            try:
+                frame = sc.capture_monitor()
+            finally:
+                sc.close()
+            h, w = frame.shape[:2]
+            if not h or not w:
+                raise RuntimeError("empty frame from screen capture")
+            ok, buf = cv2.imencode(".png", frame)
+            if not ok:
+                raise RuntimeError("PNG encode failed")
+            b64 = base64.b64encode(buf.tobytes()).decode("ascii")
+            return b64, w, h
+        except Exception as e:
+            last_err = e
+            _t.sleep(0.4)
+    raise RuntimeError(
+        "Не вдалось зробити знімок екрана. Переконайтесь, що Dota 2 працює в "
+        "режимі «У вікні без рамки» (Borderless), а не «На весь екран». "
+        f"(деталі: {type(last_err).__name__}: {last_err})"
+    )
 
 
 # ── storage ──────────────────────────────────────────────────────────────────
