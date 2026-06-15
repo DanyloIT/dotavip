@@ -182,6 +182,39 @@ ipcMain.handle('install-update-now', () => {
   return true;
 });
 
+// ── Security hardening ──────────────────────────────────────────────────────
+// Block any attempt to open external URLs inside the app (XSS / phishing).
+app.on('web-contents-created', (_e, contents) => {
+  // Block navigation away from local app pages
+  contents.on('will-navigate', (e, url) => {
+    const allowed = ['http://localhost:5173', 'http://127.0.0.1:8765'];
+    if (!allowed.some(o => url.startsWith(o)) && !url.startsWith('file://')) {
+      e.preventDefault();
+    }
+  });
+  // Block new windows / popups entirely
+  contents.setWindowOpenHandler(() => ({ action: 'deny' }));
+});
+
+// Set strict CSP on all responses from localhost dev server
+const { session } = require('electron');
+app.whenReady().then(() => {
+  session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
+    cb({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self' http://127.0.0.1:8765; " +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +   // needed for Vite HMR in dev
+          "style-src 'self' 'unsafe-inline'; " +
+          "img-src 'self' data: http://127.0.0.1:8765; " +
+          "connect-src 'self' ws://127.0.0.1:8765 http://127.0.0.1:8765 ws://localhost:5173 http://localhost:5173;",
+        ],
+      },
+    });
+  });
+});
+
 // ── GPU compositing ON ──────────────────────────────────────────────────────
 // A transparent fullscreen overlay MUST be GPU-composited. Software rendering
 // forces the CPU to paint the whole screen every frame (that was the FPS
@@ -259,7 +292,7 @@ function createOverlayWindow() {
       nodeIntegration:  false,
       contextIsolation: true,
       preload:          path.join(__dirname, 'preload.cjs'),
-      webSecurity:      false,
+      webSecurity:      true,
       sandbox:          true,
     },
   });

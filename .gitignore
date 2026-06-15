@@ -20,6 +20,16 @@ DotaVIP.exe
 # ── User data / calibration (per-machine, not for git) ───────────────────────
 backend/assets/scoreboard_calibration.json
 
+# ── Secrets — never commit these ──────────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+auth.json
+
 # ── IDE / OS ──────────────────────────────────────────────────────────────────
 .claude/
 .vscode/

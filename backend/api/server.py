@@ -420,7 +420,11 @@ def calibrate_preview_png():
 
 @app.get("/debug")
 def debug():
-    """Show raw GSI payload keys for debugging."""
+    """Show raw GSI payload keys — available in dev mode only."""
+    import os
+    if os.environ.get("DOTAVIP_DEBUG") != "1":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Debug endpoint disabled in production")
     return {
         "top_keys": list(_last_raw_payload.keys()),
         "has_allplayers": "allplayers" in _last_raw_payload,
