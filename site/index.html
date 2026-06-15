@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DotaVIP — Ігровий помічник для Dota 2</title>
+  <meta name="description" content="Оверлей для Dota 2: таймери байбеку, ультів і Рошана прямо в грі. Безкоштовно.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #38bdf8;
+      --bg: #060b14;
+      --card: #0d1829;
+      --border: #1e2d45;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 32px;
+      background: rgba(6,11,20,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(30,45,69,.6);
+    }
+
+    .nav-logo {
+      font-size: 1.1rem;
+      font-weight: 900;
+      letter-spacing: -.01em;
+      color: var(--text);
+    }
+    .nav-logo span { color: var(--accent); }
+
+    .lang-switcher {
+      display: flex;
+      gap: 4px;
+    }
+    .lang-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .lang-btn:hover { color: var(--text); border-color: var(--border); }
+    .lang-btn.active {
+      color: var(--accent);
+      border-color: rgba(56,189,248,.35);
+      background: rgba(56,189,248,.08);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 60px;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(56,189,248,.10) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(129,140,248,.07) 0%, transparent 60%);
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(56,189,248,.12);
+      border: 1px solid rgba(56,189,248,.25);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+      margin-bottom: 22px;
+    }
+    h1 span { color: var(--accent); }
+
+    .subtitle {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 44px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent);
+      color: #020917;
+      font-size: 1.05rem;
+      font-weight: 800;
+      padding: 16px 38px;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: transform .15s, box-shadow .15s, background .15s;
+      box-shadow: 0 0 32px rgba(56,189,248,.30);
+    }
+    .btn-primary:hover {
+      background: #7dd3fc;
+      transform: translateY(-2px);
+      box-shadow: 0 0 48px rgba(56,189,248,.45);
+    }
+
+    .dl-meta {
+      margin-top: 14px;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    /* ── FEATURES ── */
+    .features {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .section-label {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      text-align: center;
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      font-weight: 800;
+      margin-bottom: 56px;
+      letter-spacing: -.01em;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 26px;
+      transition: border-color .2s, transform .2s;
+    }
+    .card:hover { border-color: rgba(56,189,248,.35); transform: translateY(-3px); }
+
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-icon img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      border-radius: 4px;
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .card p {
+      font-size: 13.5px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .how {
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 80px 24px;
+    }
+
+    .steps {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(56,189,248,.12);
+      border: 1.5px solid rgba(56,189,248,.35);
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-text h4 { font-size: .95rem; font-weight: 700; margin-bottom: 4px; }
+    .step-text p  { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+
+    /* ── CTA BOTTOM ── */
+    .cta {
+      text-align: center;
+      padding: 90px 24px;
+    }
+    .cta h2 { margin-bottom: 18px; }
+    .cta p  { color: var(--muted); font-size: 1rem; margin-bottom: 36px; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px;
+      text-align: center;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    footer a { color: var(--muted); text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">Dota<span>VIP</span></div>
+    <div class="lang-switcher">
+      <button class="lang-btn active" onclick="setLang('ua')">UA</button>
+      <button class="lang-btn" onclick="setLang('ru')">RU</button>
+      <button class="lang-btn" onclick="setLang('en')">EN</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="badge" data-t="badge"></div>
+    <h1 data-t="h1_line1"></h1>
+    <p class="subtitle" data-t="subtitle"></p>
+    <a class="btn-primary" id="dl-btn" href="#">
+      ⬇ <span data-t="dl_btn"></span>
+    </a>
+    <p class="dl-meta" data-t="dl_meta"></p>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <p class="section-label" data-t="feat_label"></p>
+    <h2 data-t="feat_title"></h2>
+    <div class="grid">
+
+      <div class="card">
+        <div class="card-icon">⏱</div>
+        <h3 data-t="f1_title"></h3>
+        <p data-t="f1_desc"></p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🔮</div>
+        <h3 data-t="f2_title"></h3>
+        <p data-t="f2_desc"></p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">
+          <img src="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/items/black_king_bar.png"
+               alt="BKB" onerror="this.replaceWith(document.createTextNode('🛡'))">
+        </div>
+        <h3 data-t="f3_title"></h3>
+        <p data-t="f3_desc"></p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">
+          <img src="https://raw.githubusercontent.com/DanyloIT/dotavip/main/frontend/public/rosh/Roshan.png"
+               alt="Roshan" onerror="this.replaceWith(document.createTextNode('🐉'))">
+        </div>
+        <h3 data-t="f4_title"></h3>
+        <p data-t="f4_desc"></p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">👁</div>
+        <h3 data-t="f5_title"></h3>
+        <p data-t="f5_desc"></p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🎮</div>
+        <h3 data-t="f6_title"></h3>
+        <p data-t="f6_desc"></p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how">
+    <p class="section-label" data-t="how_label"></p>
+    <h2 data-t="how_title"></h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <h4 data-t="s1_title"></h4>
+          <p data-t="s1_desc"></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <h4 data-t="s2_title"></h4>
+          <p data-t="s2_desc"></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <h4 data-t="s3_title"></h4>
+          <p data-t="s3_desc"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2 data-t="cta_title"></h2>
+    <p data-t="cta_desc"></p>
+    <a class="btn-primary" id="dl-btn2" href="#">
+      ⬇ <span data-t="dl_btn"></span>
+    </a>
+  </section>
+
+  <footer>
+    <p>
+      DotaVIP Beta ·
+      <a href="https://github.com/DanyloIT/dotavip" target="_blank">GitHub</a> ·
+      <span data-t="footer_note"></span>
+    </p>
+  </footer>
+
+  <script>
+    const T = {
+      ua: {
+        badge:    'Beta · Безкоштовно',
+        h1_line1: 'Ігровий помічник<br>для <span>Dota 2</span>',
+        subtitle: 'Оверлей поверх гри — таймери байбеку, ультів і БКБ ворогів, Рошан, Аегіс і Гліф. Авто-зчитування героїв з таблиці результатів. Не заважає грі, не впливає на FPS.',
+        dl_btn:   'Завантажити для Windows',
+        dl_meta:  'Windows 10/11 · 64-bit · ~220 MB',
+
+        feat_label: 'Можливості',
+        feat_title: 'Все, що тобі треба під час гри',
+
+        f1_title: 'Таймер байбеку',
+        f1_desc:  'Клікни — і таймер 8 хвилин запускається прямо під портретом ворога.',
+        f2_title: 'Таймери ульти',
+        f2_desc:  'Підтримує Octarine Core (−25%) і автоматично розпізнає рівні здібностей.',
+        f3_title: 'БКБ ворогів',
+        f3_desc:  'Увімкни опціональний таймер БКБ для будь-якого суперника.',
+        f4_title: 'Рошан та Аегіс',
+        f4_desc:  'Авто-старт таймерів прямо в грі. Аегіс блимає останні 5 секунд і зникає автоматично. Ви ніколи не пропустите ідеальний момент вбити ворога.',
+        f5_title: 'Авто-зчитування',
+        f5_desc:  'Поки ти тримаєш клавішу таблиці результатів відкритою, додаток зчитує героїв і рівні ворогів та автоматично заповнює інформацію.',
+        f6_title: 'Не заважає грі',
+        f6_desc:  'Прозорий оверлей, не краде фокус із гри. Ховається автоматично коли Dota не активна. FPS не падає, а всі кнопки можна перетягнути та налаштувати під себе.',
+
+        how_label: 'Початок роботи',
+        how_title: 'Три кроки до старту',
+        s1_title:  'Завантажити та встановити',
+        s1_desc:   'Все встановлюється в один клік за декілька хвилин.',
+        s2_title:  'Налаштувати таблицю результатів',
+        s2_desc:   'В головному вікні додатку пройди просте калібрування. Зрозумілий гайд, весь процес займе 1 хвилину.',
+        s3_title:  'Грати',
+        s3_desc:   'Запускай Dota 2 — оверлей з\'явиться автоматично. Клікай по кнопках під ворогами щоб запускати таймери прямо під час гри.',
+
+        cta_title:   'Готовий спробувати?',
+        cta_desc:    'Безкоштовно. Без реєстрації. Встановлюється за хвилину.',
+        footer_note: 'Не пов\'язано з Valve або Dota 2',
+      },
+
+      ru: {
+        badge:    'Beta · Бесплатно',
+        h1_line1: 'Игровой помощник<br>для <span>Dota 2</span>',
+        subtitle: 'Оверлей поверх игры — таймеры байбека, ультов и БКБ врагов, Рошан, Аегис и Глиф. Авто-распознавание героев из таблицы результатов. Не мешает игре, не влияет на FPS.',
+        dl_btn:   'Скачать для Windows',
+        dl_meta:  'Windows 10/11 · 64-bit · ~220 МБ',
+
+        feat_label: 'Возможности',
+        feat_title: 'Всё, что тебе нужно во время игры',
+
+        f1_title: 'Таймер байбека',
+        f1_desc:  'Нажми — и таймер 8 минут запустится прямо под портретом врага.',
+        f2_title: 'Таймеры ульты',
+        f2_desc:  'Поддерживает Octarine Core (−25%) и автоматически определяет уровни способностей.',
+        f3_title: 'БКБ врагов',
+        f3_desc:  'Включи опциональный таймер БКБ для любого соперника.',
+        f4_title: 'Рошан и Аегис',
+        f4_desc:  'Авто-старт таймеров прямо в игре. Аегис мигает последние 5 секунд и исчезает автоматически. Вы никогда не пропустите идеальный момент убить врага.',
+        f5_title: 'Авто-распознавание',
+        f5_desc:  'Пока ты держишь клавишу таблицы результатов открытой, приложение считывает героев и уровни врагов и автоматически заполняет информацию.',
+        f6_title: 'Не мешает игре',
+        f6_desc:  'Прозрачный оверлей, не крадёт фокус из игры. Скрывается автоматически когда Dota не активна. FPS не падает, а все кнопки можно перетащить и настроить под себя.',
+
+        how_label: 'Начало работы',
+        how_title: 'Три шага до старта',
+        s1_title:  'Скачать и установить',
+        s1_desc:   'Всё устанавливается в один клик за несколько минут.',
+        s2_title:  'Настроить таблицу результатов',
+        s2_desc:   'В главном окне приложения пройди простую калибровку. Понятный гайд, весь процесс займёт 1 минуту.',
+        s3_title:  'Играть',
+        s3_desc:   'Запускай Dota 2 — оверлей появится автоматически. Нажимай на кнопки под врагами, чтобы запускать таймеры прямо во время игры.',
+
+        cta_title:   'Готов попробовать?',
+        cta_desc:    'Бесплатно. Без регистрации. Устанавливается за минуту.',
+        footer_note: 'Не связано с Valve или Dota 2',
+      },
+
+      en: {
+        badge:    'Beta · Free',
+        h1_line1: 'In-game assistant<br>for <span>Dota 2</span>',
+        subtitle: 'An overlay on top of your game — buyback, ultimate and BKB timers for enemies, Roshan, Aegis and Glyph. Auto-reads heroes from the scoreboard. Zero FPS impact.',
+        dl_btn:   'Download for Windows',
+        dl_meta:  'Windows 10/11 · 64-bit · ~220 MB',
+
+        feat_label: 'Features',
+        feat_title: 'Everything you need during the game',
+
+        f1_title: 'Buyback timer',
+        f1_desc:  'One click — an 8-minute timer starts right below the enemy portrait.',
+        f2_title: 'Ultimate timers',
+        f2_desc:  'Supports Octarine Core (−25%) and automatically detects ability levels.',
+        f3_title: 'Enemy BKB',
+        f3_desc:  'Enable an optional BKB timer for any opponent.',
+        f4_title: 'Roshan & Aegis',
+        f4_desc:  'Timers start automatically in-game. Aegis flashes for the last 5 seconds then disappears. You\'ll never miss the perfect moment to kill.',
+        f5_title: 'Auto-recognition',
+        f5_desc:  'While you hold the scoreboard key open, the app reads enemy heroes and levels and fills the information automatically.',
+        f6_title: 'Zero distraction',
+        f6_desc:  'Transparent overlay that never steals focus from the game. Hides automatically when Dota is not active. No FPS drop — and every button can be dragged to fit your layout.',
+
+        how_label: 'Getting started',
+        how_title: 'Three steps to start',
+        s1_title:  'Download and install',
+        s1_desc:   'Everything installs in one click in a few minutes.',
+        s2_title:  'Set up the scoreboard',
+        s2_desc:   'Run a quick calibration in the main app window. A clear guide walks you through it — takes about 1 minute.',
+        s3_title:  'Play',
+        s3_desc:   'Launch Dota 2 — the overlay appears automatically. Click the buttons under enemies to start timers right in the middle of the game.',
+
+        cta_title:   'Ready to try?',
+        cta_desc:    'Free. No sign-up. Installs in a minute.',
+        footer_note: 'Not affiliated with Valve or Dota 2',
+      },
+    };
+
+    let currentLang = localStorage.getItem('lang') || 'ua';
+
+    function setLang(l) {
+      currentLang = l;
+      localStorage.setItem('lang', l);
+      render();
+      document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('active', b.textContent.toLowerCase() === l);
+      });
+    }
+
+    function render() {
+      const d = T[currentLang];
+      document.querySelectorAll('[data-t]').forEach(el => {
+        const key = el.dataset.t;
+        if (d[key] !== undefined) el.innerHTML = d[key];
+      });
+      document.documentElement.lang = currentLang === 'ua' ? 'uk' : currentLang;
+    }
+
+    // Dynamic download link — always points to the latest .exe on GitHub Releases
+    async function updateDownloadLink() {
+      let href = 'https://github.com/DanyloIT/dotavip/releases/latest/download/DotaVIP-Setup-1.0.0.exe';
+      try {
+        const res = await fetch('https://api.github.com/repos/DanyloIT/dotavip/releases/latest');
+        const data = await res.json();
+        const asset = data.assets?.find(a => a.name.endsWith('.exe') && !a.name.includes('blockmap'));
+        if (asset) href = asset.browser_download_url;
+      } catch {}
+      document.getElementById('dl-btn').href  = href;
+      document.getElementById('dl-btn2').href = href;
+    }
+
+    render();
+    updateDownloadLink();
+    // Apply active state on load
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent.toLowerCase() === currentLang);
+    });
+  </script>
+</body>
+</html>
