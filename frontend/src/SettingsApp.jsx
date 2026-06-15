@@ -73,21 +73,23 @@ function InfoImg({ src }) {
 }
 
 // Renders the saved calibration snapshot: screenshot + 5 numbered dots.
-function CalibrationSnapshot({ snapshot }) {
+function CalibrationSnapshot({ snapshot, successMsg }) {
   const t = useT();
   if (!snapshot) return null;
-  const { image, width, height, clicks } = snapshot;
+  const { width, height, clicks } = snapshot;
   const LABELS  = ['1','2','3','4','5'];
   const COLORS  = ['#38bdf8','#22c55e','#f59e0b','#f472b6','#a78bfa'];
   const KEYS    = ['level_first','radiant_first','radiant_last','dire_first','dire_last'];
   const NAMES   = ['c_level1','c_rad_first','c_rad_last','c_dire_first','c_dire_last'];
+  // Cache-bust so the image reloads after recalibration
+  const imgSrc  = `${API}/calibrate/preview.png?t=${snapshot._ts || 0}`;
 
   return (
     <div style={{ marginTop: 24 }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', letterSpacing: '.07em',
         textAlign: 'center', marginBottom: 10 }}>{t('calib_preview_title') || 'ЗБЕРЕЖЕНІ ТОЧКИ КАЛІБРУВАННЯ'}</div>
       <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
-        <img src={`data:image/png;base64,${image}`}
+        <img src={imgSrc}
           style={{ width: '100%', display: 'block', borderRadius: 6, border: '1px solid #1e293b' }} />
         {KEYS.map((key, i) => {
           const pt = clicks[key];
@@ -117,6 +119,19 @@ function CalibrationSnapshot({ snapshot }) {
           </span>
         ))}
       </div>
+
+      {/* One-time success message shown only immediately after calibration */}
+      {successMsg && (
+        <div style={{ marginTop: 16, background: 'rgba(34,197,94,.08)', border: '1px solid rgba(34,197,94,.25)',
+          borderRadius: 10, padding: '12px 16px' }}>
+          <div style={{ color: '#22c55e', fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
+            ✓ {t('calib_success_title') || 'Калібрування успішне'}
+          </div>
+          <div style={{ color: '#94a3b8', fontSize: 12.5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+            {successMsg}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -130,9 +145,10 @@ function CalibrationModal({ calibrated, reload, onClose }) {
   const [stepIdx, setStepIdx] = useState(0);
   const [msg, setMsg] = useState('');
   const [snapshot, setSnapshot] = useState(null);
+  const [successMsg, setSuccessMsg] = useState('');
   const imgRef = useRef();
 
-  // Load saved snapshot on open
+  // Load saved snapshot on open (meta only — image is fetched by <img> directly)
   useEffect(() => {
     fetch(`${API}/calibrate/snapshot`)
       .then(r => r.json())
@@ -167,15 +183,26 @@ function CalibrationModal({ calibrated, reload, onClose }) {
   const save = async (c) => {
     setPhase('saving');
     try {
-      // Strip the "data:image/png;base64," prefix before sending
       const imageB64 = img.data.replace(/^data:image\/png;base64,/, '');
       await fetch(`${API}/calibrate`, { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ width:img.width, height:img.height, image: imageB64,
           level_first:c.level_first, radiant_first:c.radiant_first, radiant_last:c.radiant_last,
           dire_first:c.dire_first, dire_last:c.dire_last }) });
-      // Build snapshot locally so it shows immediately without an extra fetch
-      const newSnap = { image: imageB64, width: img.width, height: img.height, clicks: c };
-      setSnapshot(newSnap);
+      // Snapshot meta (no image — image served directly by backend as /calibrate/preview.png)
+      const ts = Date.now();
+      setSnapshot({ width: img.width, height: img.height, clicks: c, _ts: ts });
+      // Try to get OCR result to show success message
+      try {
+        const ocrRes = await fetch(`${API}/scoreboard/read?delay=0`);
+        const ocrData = await ocrRes.json();
+        const heroes = ocrData?.results || [];
+        if (heroes.length) {
+          const lines = heroes.map(h => `• ${h.hero || '?'}  (рівень ${h.level ?? '?'})`).join('\n');
+          setSuccessMsg(`Суперників розпізнано: ${heroes.length}\n${lines}`);
+        } else {
+          setSuccessMsg('Точки збережено. Для перевірки розпізнавання — відкрий таблицю результатів у грі.');
+        }
+      } catch { setSuccessMsg('Точки збережено успішно.'); }
       setPhase('done'); setMsg(t('calib_saved')); reload();
     } catch { setPhase('error'); setMsg(t('save_fail')); }
   };
@@ -232,7 +259,7 @@ function CalibrationModal({ calibrated, reload, onClose }) {
 
           {/* Persistent preview — shown whenever we have a saved snapshot and are NOT mid-calibration */}
           {snapshot && phase !== 'clicking' && phase !== 'counting' && (
-            <CalibrationSnapshot snapshot={snapshot} />
+            <CalibrationSnapshot snapshot={snapshot} successMsg={successMsg} />
           )}
         </div>
       </div>

@@ -21,8 +21,20 @@ import numpy as np
 
 from capture.screen import ScreenCapture
 
-_CALIB_PATH    = Path(__file__).parent.parent / "assets" / "scoreboard_calibration.json"
-_SNAPSHOT_PATH = Path(__file__).parent.parent / "assets" / "calibration_snapshot.json"
+import sys
+
+def _assets_dir() -> Path:
+    """Persistent assets directory that survives app restarts in both dev and
+    PyInstaller (onedir) mode. In frozen mode __file__ is inside _MEIPASS which
+    IS the permanent onedir folder, so writes there persist just like in dev."""
+    if getattr(sys, "frozen", False):
+        # PyInstaller onedir: exe sits in the dist folder; assets/ is a sibling
+        return Path(sys.executable).parent / "assets"
+    return Path(__file__).parent.parent / "assets"
+
+_CALIB_PATH    = _assets_dir() / "scoreboard_calibration.json"
+_PREVIEW_PNG   = _assets_dir() / "calibration_preview.png"
+_SNAPSHOT_META = _assets_dir() / "calibration_snapshot_meta.json"
 
 
 # ── capture ──────────────────────────────────────────────────────────────────
@@ -58,16 +70,20 @@ def get_calibration(width: int, height: int) -> Optional[dict]:
     return _load_all().get(f"{width}x{height}")
 
 def save_snapshot(image_b64: str, width: int, height: int, clicks: dict) -> None:
-    """Persist the calibration screenshot + click positions for the UI preview."""
-    payload = {"image": image_b64, "width": width, "height": height, "clicks": clicks}
-    _SNAPSHOT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _SNAPSHOT_PATH.write_text(json.dumps(payload), encoding="utf-8")
+    """Save calibration preview: PNG file + small JSON with click coords."""
+    _assets_dir().mkdir(parents=True, exist_ok=True)
+    # Save PNG as binary file (fast to serve, no base64 overhead)
+    png_bytes = base64.b64decode(image_b64)
+    _PREVIEW_PNG.write_bytes(png_bytes)
+    # Save only click coords + dimensions (tiny file, loads instantly)
+    meta = {"width": width, "height": height, "clicks": clicks}
+    _SNAPSHOT_META.write_text(json.dumps(meta), encoding="utf-8")
 
-def load_snapshot() -> Optional[dict]:
-    if not _SNAPSHOT_PATH.exists():
+def load_snapshot_meta() -> Optional[dict]:
+    if not _SNAPSHOT_META.exists() or not _PREVIEW_PNG.exists():
         return None
     try:
-        return json.loads(_SNAPSHOT_PATH.read_text(encoding="utf-8"))
+        return json.loads(_SNAPSHOT_META.read_text(encoding="utf-8"))
     except Exception:
         return None
 

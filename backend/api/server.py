@@ -384,16 +384,19 @@ async def calibrate_post(request: Request):
 @app.get("/calibrate/snapshot")
 def calibrate_snapshot():
     from tracker import calibration
-    snap = calibration.load_snapshot()
-    if snap is None:
+    meta = calibration.load_snapshot_meta()
+    if meta is None:
         return {"snapshot": None}
-    # Return without the full image to keep it fast; image comes separately
-    return {"snapshot": {
-        "width":  snap["width"],
-        "height": snap["height"],
-        "clicks": snap["clicks"],
-        "image":  snap["image"],   # base64 PNG
-    }}
+    return {"snapshot": meta}   # only width/height/clicks — no image bytes
+
+from fastapi.responses import FileResponse
+@app.get("/calibrate/preview.png")
+def calibrate_preview_png():
+    from tracker.calibration import _PREVIEW_PNG
+    if not _PREVIEW_PNG.exists():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="No preview")
+    return FileResponse(str(_PREVIEW_PNG), media_type="image/png")
 
 @app.get("/debug")
 def debug():

@@ -84,6 +84,7 @@ export const T = {
   autostart_label: {"ua":"Автозапуск при включенні ПК","ru":"Автозапуск при включении ПК","en":"Start with Windows"},
   autostart_desc: {"ua":"DotaVIP запускатиметься автоматично при вході в Windows і працюватиме у треї.","ru":"DotaVIP будет запускаться автоматически при входе в Windows и работать в трее.","en":"DotaVIP will start automatically when you sign in to Windows and run in the tray."},
   calib_preview_title: {"ua":"ЗБЕРЕЖЕНІ ТОЧКИ КАЛІБРУВАННЯ","ru":"СОХРАНЁННЫЕ ТОЧКИ КАЛИБРОВКИ","en":"SAVED CALIBRATION POINTS"},
+  calib_success_title: {"ua":"Калібрування успішне","ru":"Калибровка успешна","en":"Calibration successful"},
   update_ready_label: {"ua":"🆕 Оновлення готове","ru":"🆕 Обновление готово","en":"🆕 Update ready"},
   update_ready_desc: {"ua":"Буде встановлено автоматично після закриття Dota 2. Або встановіть зараз.","ru":"Будет установлено автоматически после закрытия Dota 2. Или установите сейчас.","en":"Will install automatically after Dota 2 closes. Or install now."},
   update_install_btn: {"ua":"Встановити зараз","ru":"Установить сейчас","en":"Install now"},
