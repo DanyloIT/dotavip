@@ -287,7 +287,7 @@
     <div class="badge" data-t="badge"></div>
     <h1 data-t="h1_line1"></h1>
     <p class="subtitle" data-t="subtitle"></p>
-    <a class="btn-primary" id="dl-btn" href="#">
+    <a class="btn-primary" id="dl-btn" href="https://github.com/DanyloIT/dotavip/releases/latest/download/DotaVIP-Setup-1.0.1.exe" download>
       ⬇ <span data-t="dl_btn"></span>
     </a>
     <p class="dl-meta" data-t="dl_meta"></p>
@@ -377,7 +377,7 @@
   <section class="cta">
     <h2 data-t="cta_title"></h2>
     <p data-t="cta_desc"></p>
-    <a class="btn-primary" id="dl-btn2" href="#">
+    <a class="btn-primary" id="dl-btn2" href="https://github.com/DanyloIT/dotavip/releases/latest/download/DotaVIP-Setup-1.0.1.exe" download>
       ⬇ <span data-t="dl_btn"></span>
     </a>
   </section>
@@ -524,17 +524,19 @@
       document.documentElement.lang = currentLang === 'ua' ? 'uk' : currentLang;
     }
 
-    // Dynamic download link — always points to the latest .exe on GitHub Releases
+    // Fetch latest .exe URL from GitHub API and update both buttons.
+    // Buttons already have a working fallback href (v1.0.1) so clicks work
+    // instantly — the API call only upgrades them to a newer version if one exists.
     async function updateDownloadLink() {
-      let href = 'https://github.com/DanyloIT/dotavip/releases/latest/download/DotaVIP-Setup-1.0.0.exe';
       try {
         const res = await fetch('https://api.github.com/repos/DanyloIT/dotavip/releases/latest');
         const data = await res.json();
         const asset = data.assets?.find(a => a.name.endsWith('.exe') && !a.name.includes('blockmap'));
-        if (asset) href = asset.browser_download_url;
+        if (asset?.browser_download_url) {
+          document.getElementById('dl-btn').href  = asset.browser_download_url;
+          document.getElementById('dl-btn2').href = asset.browser_download_url;
+        }
       } catch {}
-      document.getElementById('dl-btn').href  = href;
-      document.getElementById('dl-btn2').href = href;
     }
 
     render();
