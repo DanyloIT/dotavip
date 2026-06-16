@@ -39,27 +39,23 @@ function writeSettings(patch) {
   return next;
 }
 
-// The user-facing launcher (winexe) at the project root. In dev this is what
-// must autostart — NOT the dev electron.exe (which has no backend/vite around
-// it). In production there is no separate launcher: the installed app exe IS
-// the entry point, so we register process.execPath with --autostart.
-function launcherPath() {
-  return path.join(__dirname, '..', '..', 'DotaVIP.exe');
-}
-
 function applyLoginItem(enabled) {
-  const opts = { openAtLogin: !!enabled };
-  if (isDev) {
-    const launcher = launcherPath();
-    if (!fs.existsSync(launcher)) {
-      console.error('autostart: launcher not found at', launcher);
-      return;
-    }
-    opts.path = launcher;    // Windows: register the winexe launcher
-  } else {
-    opts.args = ['--autostart'];
-  }
-  app.setLoginItemSettings(opts);
+  // DEV: never touch the real Windows login item. Dev and production share the
+  // same app name → the same registry key (electron.app.DotaVIP). If dev wrote
+  // it, it would CLOBBER the installed app's "--autostart" entry with the dev
+  // launcher path, and at login both would fight over the single-instance lock
+  // (one of them dies → autostart "randomly" fails). In dev we only persist the
+  // preference in settings.json; the launcher autostart isn't needed for testing.
+  if (isDev) return;
+
+  // PRODUCTION: register the installed exe to launch hidden into the tray.
+  // Explicit path (process.execPath) + a clean openAtLogin keeps the entry
+  // stable across updates.
+  app.setLoginItemSettings({
+    openAtLogin: !!enabled,
+    path: process.execPath,
+    args: ['--autostart'],
+  });
 }
 
 function getAutostart() {
