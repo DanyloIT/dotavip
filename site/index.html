@@ -315,7 +315,7 @@
     <div class="badge" data-t="badge"></div>
     <h1 data-t="h1_line1"></h1>
     <p class="subtitle" data-t="subtitle"></p>
-    <a class="btn-primary" id="dl-btn" href="https://github.com/DanyloIT/dotavip/releases/latest/download/DotaVIP-Setup-1.0.1.exe" download>
+    <a class="btn-primary" id="dl-btn" href="https://github.com/MMRgainer/dotavip/releases/latest/download/DotaVIP-Setup-1.0.1.exe" download>
       ⬇ <span data-t="dl_btn"></span>
     </a>
     <p class="dl-meta" data-t="dl_meta"></p>
@@ -350,7 +350,7 @@
 
       <div class="card">
         <div class="card-icon">
-          <img src="https://raw.githubusercontent.com/DanyloIT/dotavip/main/frontend/public/rosh/Roshan.png"
+          <img src="https://raw.githubusercontent.com/MMRgainer/dotavip/main/frontend/public/rosh/Roshan.png"
                alt="Roshan" onerror="this.replaceWith(document.createTextNode('🐉'))">
         </div>
         <h3 data-t="f4_title"></h3>
@@ -405,7 +405,7 @@
   <section class="cta">
     <h2 data-t="cta_title"></h2>
     <p data-t="cta_desc"></p>
-    <a class="btn-primary" id="dl-btn2" href="https://github.com/DanyloIT/dotavip/releases/latest/download/DotaVIP-Setup-1.0.1.exe" download>
+    <a class="btn-primary" id="dl-btn2" href="https://github.com/MMRgainer/dotavip/releases/latest/download/DotaVIP-Setup-1.0.1.exe" download>
       ⬇ <span data-t="dl_btn"></span>
     </a>
   </section>
@@ -413,7 +413,7 @@
   <footer>
     <p>
       DotaVIP Beta ·
-      <a href="https://github.com/DanyloIT/dotavip" target="_blank">GitHub</a> ·
+      <a href="https://github.com/MMRgainer/dotavip" target="_blank">GitHub</a> ·
       <span data-t="footer_note"></span>
     </p>
   </footer>
@@ -424,7 +424,7 @@
       <h3 data-t="modal_title"></h3>
       <p data-t="modal_lead"></p>
       <p class="modal-step" data-t="modal_step"></p>
-      <a class="modal-verify" id="modal-verify-link" href="https://github.com/DanyloIT/dotavip" target="_blank" data-t="modal_verify"></a>
+      <a class="modal-verify" id="modal-verify-link" href="https://github.com/MMRgainer/dotavip" target="_blank" data-t="modal_verify"></a>
       <p data-t="modal_safe"></p>
       <button class="modal-close" id="dl-modal-close" data-t="modal_close"></button>
     </div>
@@ -470,7 +470,7 @@
         modal_title: 'Завантаження почалося ✓',
         modal_lead:  'Під час встановлення Windows може показати синє вікно «Захист Windows захистив ваш ПК». Це нормально для нових додатків без дорогого сертифіката — це не означає, що додаток небезпечний.',
         modal_step:  'Щоб встановити: натисніть «Докладніше» → «Виконати в будь-якому разі».',
-        modal_safe:  'DotaVIP не змінює гру, не чіти й не збирає ваші дані. Увесь код відкритий — будь-хто може перевірити його на GitHub.',
+        modal_safe:  'Додаток DotaVIP не змінює гру, не є чітами й не збирає ваші дані. Увесь код відкритий — будь-хто може перевірити його на GitHub.',
         modal_verify:'🔍 Переглянути код на GitHub',
         modal_close: 'Зрозуміло',
       },
@@ -513,7 +513,7 @@
         modal_title: 'Загрузка началась ✓',
         modal_lead:  'Во время установки Windows может показать синее окно «Система Windows защитила ваш компьютер». Это нормально для новых приложений без дорогого сертификата — это не значит, что приложение опасно.',
         modal_step:  'Чтобы установить: нажмите «Подробнее» → «Выполнить в любом случае».',
-        modal_safe:  'DotaVIP не меняет игру, не читы и не собирает ваши данные. Весь код открыт — любой может проверить его на GitHub.',
+        modal_safe:  'Приложение DotaVIP не меняет игру, не является читами и не собирает ваши данные. Весь код открыт — любой может проверить его на GitHub.',
         modal_verify:'🔍 Посмотреть код на GitHub',
         modal_close: 'Понятно',
       },
@@ -556,7 +556,7 @@
         modal_title: 'Download started ✓',
         modal_lead:  'During install, Windows may show a blue “Windows protected your PC” dialog. That is normal for new apps without an expensive certificate — it does not mean the app is unsafe.',
         modal_step:  'To install: click “More info” → “Run anyway”.',
-        modal_safe:  'DotaVIP does not modify the game, is not a cheat and collects none of your data. The full source is open — anyone can review it on GitHub.',
+        modal_safe:  'The DotaVIP app does not modify the game, is not a cheat and collects none of your data. The full source is open — anyone can review it on GitHub.',
         modal_verify:'🔍 View the code on GitHub',
         modal_close: 'Got it',
       },
@@ -587,7 +587,7 @@
     // instantly — the API call only upgrades them to a newer version if one exists.
     async function updateDownloadLink() {
       try {
-        const res = await fetch('https://api.github.com/repos/DanyloIT/dotavip/releases/latest');
+        const res = await fetch('https://api.github.com/repos/MMRgainer/dotavip/releases/latest');
         const data = await res.json();
         const asset = data.assets?.find(a => a.name.endsWith('.exe') && !a.name.includes('blockmap'));
         if (asset?.browser_download_url) {

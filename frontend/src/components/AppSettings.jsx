@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '../i18n';
 import { playChime } from '../overlay/chime';
+import { pub } from '../pub';
 import LangSwitcher from './LangSwitcher';
 
 function Toggle({ on, onChange, disabled }) {
@@ -57,18 +58,26 @@ export default function AppSettings({ onClose }) {
   const [remVol, setRemVol] = useState(() => { try { const v = parseFloat(localStorage.getItem('rem_volume')); return isNaN(v) ? 0.5 : v; } catch { return 0.5; } });
 
   const lastChimeRef = useRef(0);
+  const previewTypeRef = useRef(0);          // alternate lotus / rune each preview
+  const previewTimerRef = useRef(null);
+  const [remPreview, setRemPreview] = useState(null);   // 'lotus' | 'rune' | null
   const setRemindersOn = (v) => { setRemOn(v); try { localStorage.setItem('rem_enabled', v ? '1' : '0'); } catch {} };
   const setRemindersVol = (v) => {
     setRemVol(v);
     try { localStorage.setItem('rem_volume', String(v)); } catch {}
-    // Live preview: play the chime at the chosen volume while dragging
-    // (throttled so it isn't a machine-gun of overlapping beeps).
+    // Live preview while dragging (throttled): play the chime AND flash the
+    // lotus/rune icon over the app — just like the real in-game reminder, ~0.5s.
     const now = Date.now();
     if (v > 0 && now - lastChimeRef.current > 220) {
       lastChimeRef.current = now;
       playChime(v);
+      const type = (previewTypeRef.current++ % 2 === 0) ? 'lotus' : 'rune';
+      setRemPreview(type);
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = setTimeout(() => setRemPreview(null), 500);
     }
   };
+  useEffect(() => () => clearTimeout(previewTimerRef.current), []);
 
   useEffect(() => {
     if (!api?.getAutostart) return;
@@ -118,6 +127,20 @@ export default function AppSettings({ onClose }) {
       position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(2,6,23,.72)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
+      {/* Reminder preview while dragging volume — mimics the in-game popup */}
+      {remPreview && (
+        <div style={{
+          position: 'fixed', right: 26, top: '50%', transform: 'translateY(-50%)',
+          zIndex: 60, pointerEvents: 'none',
+          background: 'rgba(2,6,23,.74)',
+          border: `1px solid ${remPreview === 'lotus' ? '#ec4899' : '#38bdf8'}`,
+          borderRadius: 14, padding: '12px 14px',
+          boxShadow: `0 8px 32px rgba(0,0,0,.7), 0 0 16px ${remPreview === 'lotus' ? '#ec4899' : '#38bdf8'}55`,
+        }}>
+          <img src={pub(remPreview === 'lotus' ? 'reminders/lotus.svg' : 'reminders/rune.png')}
+            alt="" width={50} height={50} style={{ objectFit: 'contain', display: 'block' }} />
+        </div>
+      )}
       <div onClick={e => e.stopPropagation()} style={{
         width: 520, maxWidth: '92%', maxHeight: '86vh', overflowY: 'auto',
         background: '#111827', border: '1px solid #1e293b', borderRadius: 14,
