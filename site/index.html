@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DotaVIP — Ігровий помічник для Dota 2</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
   <meta name="description" content="Оверлей для Dota 2: таймери байбеку, ультів і Рошана прямо в грі. Безкоштовно.">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -454,6 +455,7 @@
   <script>
     const T = {
       ua: {
+        page_title: 'DotaVIP — Ігровий помічник для Dota 2',
         badge:    'Beta · Безкоштовно',
         h1_line1: 'Ігровий помічник<br>для <span>Dota 2</span>',
         subtitle: 'Оверлей поверх гри — таймери байбеку, ультів і БКБ ворогів, Рошан, Аегіс і Гліф. Авто-зчитування героїв з таблиці результатів. Не заважає грі, не впливає на FPS. Повністю легально: це не чіти — додаток лише показує інформацію поверх екрана й нічого не змінює в самій грі.',
@@ -499,6 +501,7 @@
       },
 
       ru: {
+        page_title: 'DotaVIP — Игровой помощник для Dota 2',
         badge:    'Beta · Бесплатно',
         h1_line1: 'Игровой помощник<br>для <span>Dota 2</span>',
         subtitle: 'Оверлей поверх игры — таймеры байбека, ультов и БКБ врагов, Рошан, Аегис и Глиф. Авто-распознавание героев из таблицы результатов. Не мешает игре, не влияет на FPS. Полностью легально: это не читы — приложение лишь показывает информацию поверх экрана и ничего не меняет в самой игре.',
@@ -544,6 +547,7 @@
       },
 
       en: {
+        page_title: 'DotaVIP — In-game assistant for Dota 2',
         badge:    'Beta · Free',
         h1_line1: 'In-game assistant<br>for <span>Dota 2</span>',
         subtitle: 'An overlay on top of your game — buyback, ultimate and BKB timers for enemies, Roshan, Aegis and Glyph. Auto-reads heroes from the scoreboard. Zero FPS impact. 100% legal: not a cheat — it only displays info on top of your screen and changes nothing in the game itself.',
@@ -616,6 +620,7 @@
         const key = el.dataset.tTitle;
         if (d[key] !== undefined) el.title = d[key];
       });
+      document.title = d.page_title;
       document.documentElement.lang = currentLang === 'ua' ? 'uk' : currentLang;
     }
 
