@@ -296,6 +296,19 @@
       width: 100%; padding: 12px; border: none; border-radius: 10px;
       background: var(--accent, #2563eb); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
     }
+    /* trust block inside the modal */
+    .modal-trust {
+      margin: 14px 0 18px; padding: 14px; border-radius: 10px;
+      background: rgba(15,23,42,.6); border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .trust-row {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; line-height: 1.4; color: var(--text);
+    }
+    .trust-row .ico { flex-shrink: 0; font-size: 15px; }
+    .trust-row a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .trust-row a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -426,6 +439,14 @@
       <p class="modal-step" data-t="modal_step"></p>
       <a class="modal-verify" id="modal-verify-link" href="https://github.com/MMRgainer/dotavip" target="_blank" data-t="modal_verify"></a>
       <p data-t="modal_safe"></p>
+
+      <div class="modal-trust">
+        <div class="trust-row" id="trust-vt" style="display:none">
+          <span class="ico">✅</span>
+          <span><span data-t="trust_vt"></span> <a id="trust-vt-link" href="#" target="_blank" data-t="trust_vt_link"></a></span>
+        </div>
+      </div>
+
       <button class="modal-close" id="dl-modal-close" data-t="modal_close"></button>
     </div>
   </div>
@@ -472,6 +493,8 @@
         modal_step:  'Щоб встановити: натисніть «Докладніше» → «Виконати в будь-якому разі».',
         modal_safe:  'Додаток DotaVIP не змінює гру, не є чітами й не збирає ваші дані. Увесь код відкритий — будь-хто може перевірити його на GitHub.',
         modal_verify:'🔍 Переглянути код на GitHub',
+        trust_vt:    '70 антивірусів перевірили файл і жоден не знайшов загрози.',
+        trust_vt_link:'Подивитись результат перевірки →',
         modal_close: 'Зрозуміло',
       },
 
@@ -515,6 +538,8 @@
         modal_step:  'Чтобы установить: нажмите «Подробнее» → «Выполнить в любом случае».',
         modal_safe:  'Приложение DotaVIP не меняет игру, не является читами и не собирает ваши данные. Весь код открыт — любой может проверить его на GitHub.',
         modal_verify:'🔍 Посмотреть код на GitHub',
+        trust_vt:    '70 антивирусов проверили файл — ни один не нашёл угрозы.',
+        trust_vt_link:'Посмотреть результат проверки →',
         modal_close: 'Понятно',
       },
 
@@ -558,8 +583,16 @@
         modal_step:  'To install: click “More info” → “Run anyway”.',
         modal_safe:  'The DotaVIP app does not modify the game, is not a cheat and collects none of your data. The full source is open — anyone can review it on GitHub.',
         modal_verify:'🔍 View the code on GitHub',
+        trust_vt:    '70 antivirus engines scanned the file — zero threats found.',
+        trust_vt_link:'See the scan result →',
         modal_close: 'Got it',
       },
+    };
+
+    // ── Trust links — update per release ─────────────────────────────────
+    const TRUST = {
+      // VirusTotal permanent scan link for the latest installer.
+      virustotal: 'https://www.virustotal.com/gui/file/2fdd8a51e47d5e130cc52e997780f8202daff76adfb081108b9a683ed8dafa7a/detection',
     };
 
     let currentLang = localStorage.getItem('lang') || 'ua';
@@ -579,7 +612,19 @@
         const key = el.dataset.t;
         if (d[key] !== undefined) el.innerHTML = d[key];
       });
+      document.querySelectorAll('[data-t-title]').forEach(el => {
+        const key = el.dataset.tTitle;
+        if (d[key] !== undefined) el.title = d[key];
+      });
       document.documentElement.lang = currentLang === 'ua' ? 'uk' : currentLang;
+    }
+
+    // Populate the trust rows in the modal from the TRUST config; hide if empty.
+    function applyTrust() {
+      if (TRUST.virustotal) {
+        document.getElementById('trust-vt-link').href = TRUST.virustotal;
+        document.getElementById('trust-vt').style.display = 'flex';
+      }
     }
 
     // Fetch latest .exe URL from GitHub API and update both buttons.
@@ -610,6 +655,7 @@
     dlModal.addEventListener('click', e => { if (e.target === dlModal) closeDlModal(); });
 
     render();
+    applyTrust();
     updateDownloadLink();
     // Apply active state on load
     document.querySelectorAll('.lang-btn').forEach(b => {

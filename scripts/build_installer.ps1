@@ -83,3 +83,13 @@ Write-Host "DONE. Installer in frontend\release\" -ForegroundColor Green
 Get-ChildItem "$root\frontend\release\*.exe" -ErrorAction SilentlyContinue | ForEach-Object {
     Write-Host ("  " + $_.Name + "  " + [int]($_.Length/1MB) + " MB")
 }
+
+# SHA-256 of the just-built installer (paste into site/index.html -> TRUST.sha256).
+$ver = (Get-Content "$root\frontend\package.json" | ConvertFrom-Json).version
+$setup = "$root\frontend\release\DotaVIP-Setup-$ver.exe"
+if (Test-Path $setup) {
+    $sha = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+    Write-Host ""
+    Write-Host "SHA-256 (-> site TRUST.sha256):" -ForegroundColor Cyan
+    Write-Host ("  " + $sha)
+}
