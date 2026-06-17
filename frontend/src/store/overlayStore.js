@@ -31,25 +31,38 @@ export const useOverlayStore = create((set, get) => ({
 
   // Per-enemy CD modifiers (persist across popup open/close)
   // Octarine Core −25% — applies to ULT and BKB. (Arcane rune removed.)
+  // aghs — Aghanim's Scepter, only meaningful for heroes whose Aghs changes the
+  // ult cooldown (see overlay/aghanim.js).
   enemyMods: [
-    { octarine:false }, { octarine:false }, { octarine:false },
-    { octarine:false }, { octarine:false },
+    { octarine:false, aghs:false }, { octarine:false, aghs:false }, { octarine:false, aghs:false },
+    { octarine:false, aghs:false }, { octarine:false, aghs:false },
   ],
   toggleEnemyMod: (slot, key) => set(s => {
     const m = s.enemyMods.map((x, i) => i === slot ? { ...x, [key]: !x[key] } : x);
     return { enemyMods: m };
   }),
 
-  // Which buttons to show per enemy slot. ult on by default (matches old
-  // behaviour); bkb optional (not every enemy buys a BKB). Set in the ULT
-  // dropdown. Reset on new game.
+  // Which buttons to show per enemy slot. ult on by default; bkb optional (not
+  // every enemy buys a BKB). For heroes whose ult cooldown is < 30s the ult
+  // button is auto-hidden (see autoUlt) unless the user toggled it by hand
+  // (ultTouched). Reset on new game.
   enemyOpts: [
     { ult:true, bkb:false }, { ult:true, bkb:false }, { ult:true, bkb:false },
     { ult:true, bkb:false }, { ult:true, bkb:false },
   ],
+  ultTouched: [false, false, false, false, false],
   toggleEnemyOpt: (slot, key) => set(s => ({
     enemyOpts: s.enemyOpts.map((o, i) => i === slot ? { ...o, [key]: !o[key] } : o),
+    ultTouched: key === 'ult'
+      ? s.ultTouched.map((v, i) => i === slot ? true : v)
+      : s.ultTouched,
   })),
+  // Auto show/hide the ult button based on the hero's ult cooldown. Never
+  // overrides a manual choice (ultTouched).
+  autoUlt: (slot, show) => set(s => {
+    if (s.ultTouched[slot] || s.enemyOpts[slot].ult === show) return {};
+    return { enemyOpts: s.enemyOpts.map((o, i) => i === slot ? { ...o, ult: show } : o) };
+  }),
   setEnemyHero: (slot, heroKey) =>
     set(s => { const n = [...s.enemyHeroes]; n[slot] = heroKey; return { enemyHeroes: n }; }),
   // Manual pick from the ULT menu — locks the slot from the auto-parser
@@ -130,13 +143,14 @@ export const useOverlayStore = create((set, get) => ({
           enemyUltLevels: [0, 0, 0, 0, 0],
           manualSlots:    [false, false, false, false, false],
           enemyMods: [
-            { octarine:false }, { octarine:false }, { octarine:false },
-            { octarine:false }, { octarine:false },
+            { octarine:false, aghs:false }, { octarine:false, aghs:false }, { octarine:false, aghs:false },
+            { octarine:false, aghs:false }, { octarine:false, aghs:false },
           ],
           enemyOpts: [
             { ult:true, bkb:false }, { ult:true, bkb:false }, { ult:true, bkb:false },
             { ult:true, bkb:false }, { ult:true, bkb:false },
           ],
+          ultTouched: [false, false, false, false, false],
           timers: [],
           roshanAt: null, aegisAt: null, aegisHero: '', glyphAt: null,
         });

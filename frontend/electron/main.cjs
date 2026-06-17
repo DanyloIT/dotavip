@@ -201,6 +201,9 @@ app.on('web-contents-created', (_e, contents) => {
 // killer). GPU compositing of a transparent layer is nearly free — same as
 // how Discord/Steam/Overwolf overlays stay smooth.
 app.commandLine.appendSwitch('v8-code-cache-dir', path.join(app.getPath('userData'), 'v8-cache'));
+// The overlay never receives a user gesture (clicks pass through to the game),
+// so Chromium would block the spawn-reminder chime. Allow audio without one.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 function setVisible(show) {
   if (!overlayWindow || show === visible) return;

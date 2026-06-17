@@ -10,6 +10,7 @@ import { useOverlayStore } from '../store/overlayStore';
 import { useMouseThrough } from '../hooks/useMouseThrough';
 import { useDraggable } from '../hooks/useDraggable';
 import { enemyHeroSlotsX, topbarButtonGeometry } from '../overlay/measurements';
+import { aghsChangesUlt, aghsUltCooldown } from '../overlay/aghanim';
 import { useT } from '../i18n';
 import { pub } from '../pub';
 import UltPopup from './UltPopup';
@@ -64,6 +65,9 @@ function SlotOptions({ slot, heroKey, onChangeHero }) {
   const t = useT();
   const opts      = useOverlayStore(s => s.enemyOpts[slot]);
   const toggleOpt = useOverlayStore(s => s.toggleEnemyOpt);
+  const mods      = useOverlayStore(s => s.enemyMods[slot]);
+  const toggleMod = useOverlayStore(s => s.toggleEnemyMod);
+  const hasAghs   = aghsChangesUlt(heroKey);
 
   const pill = (on, label, color, onClick, tip) => (
     <button onClick={onClick} title={tip} style={{
@@ -87,6 +91,8 @@ function SlotOptions({ slot, heroKey, onChangeHero }) {
       <div style={{ display:'flex', gap:6 }}>
         {pill(opts.ult, t('ult'), '#7c3aed', () => toggleOpt(slot, 'ult'), t('tip_opt_ult'))}
         {pill(opts.bkb, t('bkb'), '#0891b2', () => toggleOpt(slot, 'bkb'), t('tip_opt_bkb'))}
+        {/* Aghanim — only for heroes whose Scepter changes the ult cooldown */}
+        {hasAghs && pill(mods.aghs, t('aghs'), '#eab308', () => toggleMod(slot, 'aghs'), t('tip_opt_aghs'))}
       </div>
     </div>
   );
@@ -111,10 +117,22 @@ function HeroButtons({ slot, heroKey, cx, geo, buyY, ultY, dragProps }) {
   const autoUltLevel  = useOverlayStore(s => s.enemyUltLevels[slot]) || 0;
   const mods          = useOverlayStore(s => s.enemyMods[slot]);
   const opts          = useOverlayStore(s => s.enemyOpts[slot]);
+  const autoUlt       = useOverlayStore(s => s.autoUlt);
   const { onMouseEnter, onMouseLeave } = useMouseThrough();
   const ref = useRef();
 
   const abilities = heroKey ? (abilityMap[heroKey] || []) : [];
+
+  // Item 2: hide the ult button by default for heroes whose ult cooldown is
+  // < 30s (it's not worth tracking). The user can still enable it by hand in
+  // the dropdown (that locks the slot via ultTouched so we never re-hide it).
+  useEffect(() => {
+    const active = abilities.filter(a => !a.passive && (a.cooldowns?.length ?? 0) > 0);
+    const ab = active[active.length - 1];
+    if (!ab) return;
+    const baseCd = ab.cooldowns[0] ?? 99;
+    autoUlt(slot, baseCd >= 30);
+  }, [abilities, slot, autoUlt]);
 
   useEffect(() => {
     if (!heroKey || abilityMap[heroKey]) return;
@@ -171,6 +189,10 @@ function HeroButtons({ slot, heroKey, cx, geo, buyY, ultY, dragProps }) {
     const maxLvl = ab.cooldowns?.length ?? 3;
     const lvl = Math.min(maxLvl, autoUltLevel > 0 ? autoUltLevel : 1);
     let cd = ab.cooldowns?.[lvl - 1] ?? ab.cooldowns?.[0] ?? 100;
+    if (mods?.aghs) {                  // Aghanim's Scepter changes the ult CD
+      const a = aghsUltCooldown(heroKey, lvl);
+      if (a != null) cd = a;
+    }
     if (mods?.octarine) cd *= 0.75;   // Octarine Core -25%
     cd = Math.round(cd);
     startTimer({ type:'ult', slot, label: ab.display_name,

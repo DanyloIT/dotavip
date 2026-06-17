@@ -9,6 +9,7 @@ import RoshanPanel, { RoshanAegisBlock, GlyphBlock } from './components/RoshanPa
 import TimerPanel                            from './components/TimerPanel';
 import EnemyPanel              from './components/EnemyPanel';
 import StatusBar               from './components/StatusBar';
+import SpawnReminders          from './components/SpawnReminders';
 import './App.css';
 
 const isElectron = navigator.userAgent.toLowerCase().includes('electron');
@@ -34,6 +35,9 @@ function OverlayMode({ m }) {
     <div style={{ position:'fixed', inset:0, background:'transparent', pointerEvents:'none', overflow:'hidden' }}>
       {/* BB + Ult buttons under enemy portraits (only in-game) */}
       <TopBarButtons measurements={m} />
+
+      {/* Lotus / Wisdom-rune spawn reminders (far-right, vertically centred) */}
+      <SpawnReminders />
 
       {/* Roshan / Glyph — only in-game */}
       {inGame && (

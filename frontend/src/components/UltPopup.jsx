@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOverlayStore } from '../store/overlayStore';
+import { aghsChangesUlt, aghsUltCooldown } from '../overlay/aghanim';
 import { useT } from '../i18n';
 
 const CDN_ABILITY = a => `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/abilities/${a}.png`;
@@ -25,13 +26,18 @@ export default function UltPopup({ heroKey, ability, slot, onStart, onClose, onC
   const toggleMod = useOverlayStore(s => s.toggleEnemyMod);
   const octarine = mods.octarine;
   const setOctarine = () => toggleMod(slot, 'octarine');
+  const hasAghs = aghsChangesUlt(heroKey);
+  const aghs = mods.aghs;
+  const setAghs = () => toggleMod(slot, 'aghs');
 
   const cds     = ability.cooldowns ?? [];
   // Only show the level picker when the cooldown actually changes with level.
   // Heroes like Dragon Knight have several ult levels but a constant CD.
   const variesByLevel = new Set(cds).size > 1;
   const maxLvl  = cds.length || 3;
-  const baseCd  = cds[level - 1] ?? cds[0] ?? 60;
+  // Aghanim's Scepter overrides the ult cooldown for configured heroes.
+  const aghsCd  = hasAghs && aghs ? aghsUltCooldown(heroKey, level) : null;
+  const baseCd  = aghsCd != null ? aghsCd : (cds[level - 1] ?? cds[0] ?? 60);
   const finalCd = calcCd(baseCd, octarine);
   const color   = SLOT_COLORS[slot] ?? '#7c3aed';
 
@@ -81,16 +87,27 @@ export default function UltPopup({ heroKey, ability, slot, onStart, onClose, onC
         </div>
       )}
 
-      {/* Modifier — Octarine Core only */}
+      {/* Modifiers — Octarine, and Aghanim for heroes whose Aghs changes ult CD */}
       <div style={{ marginBottom:12 }}>
         <div style={{ color:'#475569', fontSize:9, marginBottom:4, letterSpacing:'.06em' }}>{t('bonuses')}</div>
-        <button onClick={setOctarine} title={t('tip_octarine')} style={{
-          width:'100%', padding:'6px 4px', fontSize:11, fontWeight:700,
-          background: octarine ? '#0891b244' : '#1e293b',
-          color: octarine ? '#67e8f9' : '#64748b',
-          border:`1px solid ${octarine ? '#0891b2' : '#334155'}`,
-          borderRadius:6, cursor:'pointer',
-        }}>💎 Octarine −25%</button>
+        <div style={{ display:'flex', gap:6 }}>
+          <button onClick={setOctarine} title={t('tip_octarine')} style={{
+            flex:1, padding:'6px 4px', fontSize:11, fontWeight:700,
+            background: octarine ? '#0891b244' : '#1e293b',
+            color: octarine ? '#67e8f9' : '#64748b',
+            border:`1px solid ${octarine ? '#0891b2' : '#334155'}`,
+            borderRadius:6, cursor:'pointer',
+          }}>💎 Octarine −25%</button>
+          {hasAghs && (
+            <button onClick={setAghs} title={t('tip_aghs')} style={{
+              flex:1, padding:'6px 4px', fontSize:11, fontWeight:700,
+              background: aghs ? '#eab30844' : '#1e293b',
+              color: aghs ? '#fde047' : '#64748b',
+              border:`1px solid ${aghs ? '#eab308' : '#334155'}`,
+              borderRadius:6, cursor:'pointer',
+            }}>🔷 {t('aghs')}</button>
+          )}
+        </div>
       </div>
 
       {/* Start */}

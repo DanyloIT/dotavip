@@ -22,6 +22,26 @@ function Toggle({ on, onChange, disabled }) {
   );
 }
 
+// Small round (i) info icon with a hover tooltip — matches the app style.
+function InfoDot({ text }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', verticalAlign: 'middle', marginLeft: 7 }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      <span style={{ width: 16, height: 16, borderRadius: '50%', border: '1px solid #38bdf8', color: '#38bdf8',
+        fontSize: 11, fontWeight: 700, fontStyle: 'italic', display: 'inline-flex', alignItems: 'center',
+        justifyContent: 'center', cursor: 'help' }}>i</span>
+      {show && (
+        <span style={{ position: 'absolute', bottom: '150%', left: '50%', transform: 'translateX(-50%)', width: 270,
+          background: '#0a0f1a', border: '1px solid #334155', borderRadius: 8, padding: '9px 11px', color: '#cbd5e1',
+          fontSize: 12, lineHeight: 1.5, zIndex: 30, boxShadow: '0 8px 24px rgba(0,0,0,.85)', textAlign: 'left' }}>
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export default function AppSettings({ onClose }) {
   const t = useT();
   const api = window.electronAPI;
@@ -31,6 +51,12 @@ export default function AppSettings({ onClose }) {
   const [appVersion,   setAppVersion]   = useState('');
   const [installing,   setInstalling]   = useState(false);
   const [checking,     setChecking]     = useState(false);
+  // Lotus / Wisdom-rune reminders (shared with the overlay via localStorage)
+  const [remOn,  setRemOn]  = useState(() => { try { return localStorage.getItem('rem_enabled') !== '0'; } catch { return true; } });
+  const [remVol, setRemVol] = useState(() => { try { const v = parseFloat(localStorage.getItem('rem_volume')); return isNaN(v) ? 0.5 : v; } catch { return 0.5; } });
+
+  const setRemindersOn = (v) => { setRemOn(v); try { localStorage.setItem('rem_enabled', v ? '1' : '0'); } catch {} };
+  const setRemindersVol = (v) => { setRemVol(v); try { localStorage.setItem('rem_volume', String(v)); } catch {} };
 
   useEffect(() => {
     if (!api?.getAutostart) return;
@@ -108,6 +134,30 @@ export default function AppSettings({ onClose }) {
             ? <span style={{ color: '#475569', fontSize: 12 }}>—</span>
             : <Toggle on={autostart} onChange={toggleAutostart} />,
         )}
+
+        {/* Lotus / Wisdom-rune reminders — toggle + volume + info icon */}
+        <div style={{ padding: '16px 0', borderBottom: '1px solid #1e293b' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 700, marginBottom: 3 }}>
+                {t('reminders_label')}<InfoDot text={t('reminders_info')} />
+              </div>
+              <div style={{ color: '#64748b', fontSize: 12.5, lineHeight: 1.5 }}>{t('reminders_desc')}</div>
+            </div>
+            <Toggle on={remOn} onChange={setRemindersOn} />
+          </div>
+          {remOn && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+              <span style={{ color: '#94a3b8', fontSize: 12.5, minWidth: 110 }}>{t('reminders_volume')}</span>
+              <input type="range" min="0" max="1" step="0.05" value={remVol}
+                onChange={e => setRemindersVol(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: '#2563eb', cursor: 'pointer' }} />
+              <span style={{ color: '#64748b', fontSize: 12, minWidth: 36, textAlign: 'right' }}>
+                {Math.round(remVol * 100)}%
+              </span>
+            </div>
+          )}
+        </div>
 
         {row(
           t('update_label') || 'Оновлення',
