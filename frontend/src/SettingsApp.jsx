@@ -253,7 +253,7 @@ function CalibrationModal({ calibrated, reload, onClose }) {
           <div style={colTitle}>{t('guide_title')}</div>
           {gstep(1, t('calib_g1'), pub('guide/guide_img1.png'))}
           {gstep(2, t('calib_g2'), pub('guide/guide_img2.png'))}
-          {gstep(3, t('calib_g_display'), pub('guide/guide_borderless.png'))}
+          {gstep(3, t('calib_g_display'), pub('guide/guide_img4.png'))}
           {gstep(4, t('calib_g3'), pub('guide/guide_img3.png'))}
           {gstep(5, t('calib_g4'), null)}
         </div>

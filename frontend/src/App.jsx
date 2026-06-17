@@ -1,3 +1,4 @@
+import { useEffect }          from 'react';
 import { useWebSocket }       from './hooks/useWebSocket';
 import { usePauseFreeze }      from './hooks/usePauseFreeze';
 import { useGameResolution }   from './hooks/useGameResolution';
@@ -18,6 +19,10 @@ function OverlayMode({ m }) {
   const inGame = useOverlayStore(s => s.inGame);
   const rg   = m.roshanGlyph;
   const cell = Math.round(rg.size / 2);
+
+  // Tell the main process whether a match is live, so the overlay window itself
+  // is only shown during a game (not in the main menu / hero pick).
+  useEffect(() => { window.electronAPI?.setMatchActive?.(inGame); }, [inGame]);
 
   // Default layout matches DotaCoach: Roshan/Aegis top, Glyph below it.
   const roshan = useDraggable('roshan', { x: rg.xPos, y: rg.yPos });

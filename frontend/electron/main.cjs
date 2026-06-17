@@ -238,6 +238,20 @@ function setVisible(show) {
   }
 }
 
+// The overlay is shown only when BOTH are true: Dota is the focused window AND
+// a match is actually live (GSI game_state is PRE_GAME / GAME_IN_PROGRESS). This
+// keeps the overlay hidden in the main menu / hero pick, not just "Dota open".
+let _dotaFocused = false;
+let _matchActive = false;
+function updateOverlayVisibility() {
+  setVisible(_dotaFocused && _matchActive);
+}
+// The overlay renderer (which holds the GSI WebSocket) reports match state here.
+ipcMain.on('set-match-active', (_e, active) => {
+  _matchActive = !!active;
+  updateOverlayVisibility();
+});
+
 /**
  * Spawn the long-lived foreground monitor. It streams the focused process
  * name; we show the overlay only when Dota is the focused window.
@@ -266,7 +280,8 @@ function startFocusMonitor() {
     for (const line of lines) {
       const name = line.trim().toLowerCase();
       if (name === '') continue;                         // ignore empty ticks
-      setVisible(name === 'dota2');
+      _dotaFocused = (name === 'dota2');
+      updateOverlayVisibility();
     }
   });
 

@@ -3,6 +3,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   // Tell main process whether mouse should pass through
   setIgnoreMouse: (ignore) => ipcRenderer.send('set-ignore-mouse', ignore),
+  // Tell main whether a match is live (overlay window shows only then + focused)
+  setMatchActive: (active) => ipcRenderer.send('set-match-active', active),
   // Windows autostart (login item) — used by the gear settings window
   getAutostart: () => ipcRenderer.invoke('get-autostart'),
   setAutostart: (enabled) => ipcRenderer.invoke('set-autostart', enabled),
