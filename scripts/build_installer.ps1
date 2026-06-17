@@ -84,38 +84,12 @@ Get-ChildItem "$root\frontend\release\*.exe" -ErrorAction SilentlyContinue | For
     Write-Host ("  " + $_.Name + "  " + [int]($_.Length/1MB) + " MB")
 }
 
-# Auto-update site/index.html TRUST config and push to GitHub (Vercel redeploys).
+# Print SHA-256 of the just-built installer.
 $ver = (Get-Content "$root\frontend\package.json" | ConvertFrom-Json).version
 $setup = "$root\frontend\release\DotaVIP-Setup-$ver.exe"
 if (Test-Path $setup) {
     $sha = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
-    $vtLink = "https://www.virustotal.com/gui/file/$sha/detection"
-
     Write-Host ""
-    Write-Host "=== [5/5] Updating site VirusTotal link ===" -ForegroundColor Cyan
-
-    $sitePath = "$root\site\index.html"
-    $site = Get-Content $sitePath -Raw -Encoding UTF8
-
-    # Replace the virustotal value inside the TRUST object.
-    # Matches: virustotal: '...anything...',
-    $site = $site -replace "virustotal: '([^']*)'", "virustotal: '$vtLink'"
-
-    Set-Content $sitePath $site -Encoding UTF8 -NoNewline
-
-    Write-Host "  VT link updated for SHA $sha"
-    Write-Host "  $vtLink"
-    Write-Host ""
-    Write-Host "  NOTE: open the link above and upload the installer once so VirusTotal stores the scan." -ForegroundColor Yellow
-    Write-Host "  After that the link will be live. Pushing site to GitHub..." -ForegroundColor Yellow
-
-    Set-Location $root
-    & git add site/index.html
-    & git commit -m "site: update VirusTotal link for v$ver"
-    & git push
-
-    Write-Host "  Site pushed. Vercel will redeploy in ~1 min." -ForegroundColor Green
-    Write-Host ""
-    Write-Host "  >>> Open this link and upload the installer:" -ForegroundColor Cyan
-    Write-Host "  https://www.virustotal.com/gui/file-upload" -ForegroundColor White
+    Write-Host "SHA-256 (-> site TRUST.virustotal link):" -ForegroundColor Cyan
+    Write-Host ("  https://www.virustotal.com/gui/file/$sha/detection")
 }
