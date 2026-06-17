@@ -211,6 +211,30 @@
       line-height: 1.65;
     }
 
+    /* ── STATS / download counter ── */
+    .stats {
+      padding: 54px 24px;
+      text-align: center;
+      background: radial-gradient(ellipse 60% 100% at 50% 50%, rgba(56,189,248,.07) 0%, transparent 70%);
+    }
+    .stat-num {
+      font-size: clamp(2.8rem, 8vw, 4.4rem);
+      font-weight: 900;
+      letter-spacing: -.02em;
+      line-height: 1;
+      background: linear-gradient(180deg, #7dd3fc, #38bdf8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .stat-label {
+      margin-top: 10px;
+      font-size: 14.5px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      color: var(--muted);
+    }
+
     /* ── HOW IT WORKS ── */
     .how {
       background: var(--card);
@@ -386,6 +410,12 @@
     </div>
   </section>
 
+  <!-- DOWNLOAD COUNTER -->
+  <section class="stats" id="stats" style="display:none">
+    <div class="stat-num" id="dl-count">0</div>
+    <div class="stat-label" data-t="stat_downloads"></div>
+  </section>
+
   <!-- HOW IT WORKS -->
   <section class="how">
     <p class="section-label" data-t="how_label"></p>
@@ -462,6 +492,8 @@
         dl_btn:   'Завантажити для Windows',
         dl_meta:  'Windows 10/11 · 64-bit · ~220 MB',
 
+        stat_downloads: 'разів завантажили DotaVIP',
+
         feat_label: 'Можливості',
         feat_title: 'Все, що тобі треба під час гри',
 
@@ -508,6 +540,8 @@
         dl_btn:   'Скачать для Windows',
         dl_meta:  'Windows 10/11 · 64-bit · ~220 МБ',
 
+        stat_downloads: 'раз скачали DotaVIP',
+
         feat_label: 'Возможности',
         feat_title: 'Всё, что тебе нужно во время игры',
 
@@ -553,6 +587,8 @@
         subtitle: 'An overlay on top of your game — buyback, ultimate and BKB timers for enemies, Roshan, Aegis and Glyph. Auto-reads heroes from the scoreboard. Zero FPS impact. 100% legal: not a cheat — it only displays info on top of your screen and changes nothing in the game itself.',
         dl_btn:   'Download for Windows',
         dl_meta:  'Windows 10/11 · 64-bit · ~220 MB',
+
+        stat_downloads: 'DotaVIP downloads',
 
         feat_label: 'Features',
         feat_title: 'Everything you need during the game',
@@ -632,19 +668,44 @@
       }
     }
 
-    // Fetch latest .exe URL from GitHub API and update both buttons.
-    // Buttons already have a working fallback href (v1.0.1) so clicks work
-    // instantly — the API call only upgrades them to a newer version if one exists.
-    async function updateDownloadLink() {
+    // One GitHub API call does two jobs: (1) upgrade the download buttons to the
+    // newest .exe, (2) sum real download counts across all releases for the counter.
+    // Buttons already have a working fallback href so clicks work even if this fails.
+    async function loadReleases() {
       try {
-        const res = await fetch('https://api.github.com/repos/MMRgainer/dotavip/releases/latest');
-        const data = await res.json();
-        const asset = data.assets?.find(a => a.name.endsWith('.exe') && !a.name.includes('blockmap'));
-        if (asset?.browser_download_url) {
-          document.getElementById('dl-btn').href  = asset.browser_download_url;
-          document.getElementById('dl-btn2').href = asset.browser_download_url;
+        const res = await fetch('https://api.github.com/repos/MMRgainer/dotavip/releases?per_page=100');
+        const rels = await res.json();
+        if (!Array.isArray(rels)) return;
+        let total = 0, dlUrl = null;
+        for (const r of rels) {
+          if (r.draft) continue;
+          for (const a of (r.assets || [])) {
+            if (a.name.endsWith('.exe') && !a.name.includes('blockmap')) {
+              total += a.download_count || 0;
+              if (!dlUrl && !r.prerelease) dlUrl = a.browser_download_url; // newest published .exe
+            }
+          }
+        }
+        if (dlUrl) {
+          document.getElementById('dl-btn').href  = dlUrl;
+          document.getElementById('dl-btn2').href = dlUrl;
+        }
+        if (total > 0) {
+          document.getElementById('stats').style.display = 'block';
+          animateCount(document.getElementById('dl-count'), total);
         }
       } catch {}
+    }
+
+    // Smooth count-up to the target number.
+    function animateCount(el, target) {
+      const dur = 1200, t0 = performance.now();
+      (function tick(now) {
+        const p = Math.min(1, (now - t0) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * eased).toLocaleString();
+        if (p < 1) requestAnimationFrame(tick);
+      })(t0);
     }
 
     // Show the install-help modal after a download click (download still
@@ -661,7 +722,7 @@
 
     render();
     applyTrust();
-    updateDownloadLink();
+    loadReleases();
     // Apply active state on load
     document.querySelectorAll('.lang-btn').forEach(b => {
       b.classList.toggle('active', b.textContent.toLowerCase() === currentLang);
