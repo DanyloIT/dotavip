@@ -55,7 +55,7 @@ export default function AppSettings({ onClose }) {
   const [checking,     setChecking]     = useState(false);
   // Lotus / Wisdom-rune reminders (shared with the overlay via localStorage)
   const [remOn,  setRemOn]  = useState(() => { try { return localStorage.getItem('rem_enabled') !== '0'; } catch { return true; } });
-  const [remVol, setRemVol] = useState(() => { try { const v = parseFloat(localStorage.getItem('rem_volume')); return isNaN(v) ? 0.5 : v; } catch { return 0.5; } });
+  const [remVol, setRemVol] = useState(() => { try { const v = parseFloat(localStorage.getItem('rem_volume')); return isNaN(v) ? 0.2 : v; } catch { return 0.2; } });
 
   const lastChimeRef = useRef(0);
   const previewTypeRef = useRef(0);          // alternate lotus / rune each preview

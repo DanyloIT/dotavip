@@ -173,4 +173,10 @@ export const T = {
   bonuses: {"ua":"ПІДСИЛЕННЯ","ru":"УСИЛЕНИЯ","en":"BONUSES"},
   start_timer: {"ua":"Запустити","ru":"Запустить","en":"Start"},
   turbo_hint: {"ua":"Подвійний клік — Турбо/Звичайний","ru":"Двойной клик — Турбо/Обычный","en":"Double-click — Turbo/Normal"},
+  guide_minute: {"ua":"(1 хвилина)","ru":"(1 минута)","en":"(1 minute)"},
+  welcome_title: {"ua":"Вітаємо у DotaVIP","ru":"Добро пожаловать в DotaVIP","en":"Welcome to DotaVIP"},
+  welcome_lead: {"ua":"Оберіть мову та пройдіть швидке калібрування таблиці результатів — це займе близько 1 хвилини.","ru":"Выберите язык и пройдите быструю калибровку таблицы результатов — это займёт около 1 минуты.","en":"Choose your language and run a quick scoreboard calibration — it takes about 1 minute."},
+  welcome_lang: {"ua":"Мова","ru":"Язык","en":"Language"},
+  welcome_calib_btn: {"ua":"Пройти калібрування","ru":"Пройти калибровку","en":"Start calibration"},
+  welcome_later: {"ua":"Пізніше","ru":"Позже","en":"Later"},
 };

@@ -21,7 +21,7 @@ const WISDOM_TIMES = Array.from({ length: 12 }, (_, i) => (i + 1) * 420); // 7..
 const LEAD = 15;                                                 // warn 15s before
 
 function remEnabled() { try { return localStorage.getItem('rem_enabled') !== '0'; } catch { return true; } }
-function remVolume()  { try { const v = parseFloat(localStorage.getItem('rem_volume')); return isNaN(v) ? 0.5 : v; } catch { return 0.5; } }
+function remVolume()  { try { const v = parseFloat(localStorage.getItem('rem_volume')); return isNaN(v) ? 0.2 : v; } catch { return 0.2; } }
 
 function LotusIcon({ size = 50 }) {
   return <img src={pub('reminders/lotus.svg')} alt="" width={size} height={size}

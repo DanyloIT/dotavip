@@ -4,9 +4,10 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
-import { useT } from './i18n';
+import { useT, isLangChosen, setLang, getLang } from './i18n';
 import { pub } from './pub';
 import AppSettings from './components/AppSettings';
+import LangSwitcher from './components/LangSwitcher';
 
 const API = 'http://127.0.0.1:8765';
 
@@ -250,7 +251,7 @@ function CalibrationModal({ calibrated, reload, onClose }) {
       <div style={{ flex:1, display:'flex', minHeight:0 }}>
         {/* ── LEFT: guide ──────────────────────────────────────────────────── */}
         <div style={{ flex:1, padding:'46px 52px', overflowY:'auto' }}>
-          <div style={colTitle}>{t('guide_title')}</div>
+          <div style={colTitle}>{t('guide_title')} <span style={{ color:ACCENT, fontWeight:700, fontSize:14, letterSpacing:'normal' }}>{t('guide_minute')}</span></div>
           {gstep(1, t('calib_g1'), pub('guide/guide_img1.png'))}
           {gstep(2, t('calib_g2'), pub('guide/guide_img2.png'))}
           {gstep(3, t('calib_g_display'), pub('guide/guide_img4.png'))}
@@ -371,6 +372,47 @@ function Guide() {
   );
 }
 
+// ── first-launch welcome window ──────────────────────────────────────────────
+function Welcome({ onCalibrate, onLater }) {
+  const t = useT();
+  const ACCENT = '#38bdf8';
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:80, background:'rgba(2,6,23,.88)', backdropFilter:'blur(4px)',
+      display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+      <div style={{ width:560, maxWidth:'94%', background:'#111827', border:`1px solid ${ACCENT}55`,
+        borderRadius:18, padding:'40px 44px', textAlign:'center', boxShadow:'0 24px 80px rgba(0,0,0,.7)' }}>
+        <img src={pub('rosh/Roshan.png')} alt="" width={64} height={64} style={{ objectFit:'contain', marginBottom:14 }} />
+        <div style={{ fontSize:28, fontWeight:900, marginBottom:14 }}>
+          Dota<span style={{ color:ACCENT }}>VIP</span>
+        </div>
+        <div style={{ fontSize:20, fontWeight:800, color:'#e2e8f0', marginBottom:12 }}>{t('welcome_title')}</div>
+        <div style={{ fontSize:15, color:'#94a3b8', lineHeight:1.6, marginBottom:26, maxWidth:440, marginInline:'auto' }}>
+          {t('welcome_lead')}
+        </div>
+
+        <div style={{ fontSize:12.5, fontWeight:700, color:'#64748b', letterSpacing:'.08em', marginBottom:10 }}>
+          {t('welcome_lang')}
+        </div>
+        <div style={{ display:'flex', justifyContent:'center', marginBottom:30 }}>
+          <LangSwitcher />
+        </div>
+
+        <button onClick={onCalibrate} style={{
+          ...btn, padding:'15px 34px', fontSize:17, display:'inline-flex', alignItems:'center', gap:10,
+          boxShadow:`0 0 0 2px ${ACCENT}, 0 0 24px rgba(56,189,248,.5)` }}>
+          ⚙ {t('welcome_calib_btn')}
+        </button>
+        <div style={{ marginTop:16 }}>
+          <button onClick={onLater} style={{ background:'transparent', border:'none', color:'#64748b',
+            fontSize:13.5, fontWeight:600, cursor:'pointer', textDecoration:'underline' }}>
+            {t('welcome_later')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── root ─────────────────────────────────────────────────────────────────────
 export default function SettingsApp() {
   const t = useT();
@@ -379,6 +421,8 @@ export default function SettingsApp() {
   const [scale, setScale] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
   const [showCalib, setShowCalib] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => !isLangChosen());
+  const dismissWelcome = () => { setLang(getLang()); setShowWelcome(false); }; // persists lang_chosen
   const reload = () => fetch(`${API}/setup/status`).then(r=>r.json()).then(setStatus).catch(()=>setStatus(null));
   useEffect(() => { reload(); const id = setInterval(reload, 3000); return () => clearInterval(id); }, []);
 
@@ -390,16 +434,25 @@ export default function SettingsApp() {
 
   return (
     <div style={{ fontFamily:'Segoe UI, system-ui, sans-serif', color:'#e2e8f0', background:'#0b0f17', minHeight:'100vh', position:'relative' }}>
-      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} } .blink{ animation:blink 1s infinite; }`}</style>
+      <style>{`@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} } .blink{ animation:blink 1s infinite; }
+        @keyframes calibcta { 0%,100%{ box-shadow:0 0 0 2px rgba(56,189,248,.55), 0 0 16px rgba(56,189,248,.35); }
+          50%{ box-shadow:0 0 0 2px rgba(56,189,248,1), 0 0 30px rgba(56,189,248,.85); } }
+        .calibcta{ animation:calibcta 2s ease-in-out infinite; }`}</style>
 
+      {showWelcome && (
+        <Welcome
+          onCalibrate={() => { dismissWelcome(); setShowCalib(true); }}
+          onLater={dismissWelcome} />
+      )}
       {showSettings && <AppSettings onClose={() => setShowSettings(false)} />}
       {showCalib && <CalibrationModal calibrated={status?.calibrated} reload={reload} onClose={() => setShowCalib(false)} />}
 
       {/* top-right corner: settings gear */}
       <div style={{ position:'absolute', top:22, right:26, zIndex:10 }}>
         <button onClick={() => setShowSettings(true)} title={t('settings_title')}
-          style={{ background:'transparent', border:'1px solid #334155',
-            color:'#94a3b8', borderRadius:8, padding:'6px 11px', fontSize:15, cursor:'pointer', lineHeight:1 }}>⚙</button>
+          style={{ background:'transparent', border:'2px solid #38bdf8',
+            color:'#cbd5e1', borderRadius:12, padding:'15px 27px', fontSize:38, cursor:'pointer', lineHeight:1,
+            boxShadow:'0 0 14px rgba(56,189,248,.35)' }}>⚙</button>
       </div>
 
       {/* logo — top-left */}
@@ -421,14 +474,22 @@ export default function SettingsApp() {
         <div style={{ width:820, maxWidth:'92%', zoom:scale, padding:'92px 0 30px' }}>
           {/* Scoreboard setup — opens in its own window. Button stays top-center. */}
           <div style={{ display:'flex', justifyContent:'center', marginBottom:18 }}>
-            <button onClick={() => setShowCalib(true)} style={{
-              ...btn, padding:'12px 26px', fontSize:15, display:'inline-flex', alignItems:'center', gap:10,
-              transition:'box-shadow .2s', boxShadow: highlight ? '0 0 0 2px #38bdf8, 0 0 22px rgba(56,189,248,.5)' : 'none' }}>
-              ⚙ {t('step2')}
-              {status?.calibrated && <span style={{ color:'#86efac', fontWeight:800 }}>✓</span>}
-            </button>
+            {(() => {
+              const notCal = !status?.calibrated;
+              const blink = notCal && !highlight;   // gentle 2s pulse until calibrated
+              return (
+                <button onClick={() => setShowCalib(true)} className={blink ? 'calibcta' : ''} style={{
+                  ...btn, padding:'16px 34px', fontSize:20, display:'inline-flex', alignItems:'center', gap:13,
+                  transition:'box-shadow .2s',
+                  ...(highlight ? { boxShadow:'0 0 0 2px #38bdf8, 0 0 22px rgba(56,189,248,.5)' }
+                      : blink ? {} : { boxShadow:'none' }) }}>
+                  ⚙ {t('step2')}
+                  {status?.calibrated && <span style={{ color:'#86efac', fontWeight:800 }}>✓</span>}
+                </button>
+              );
+            })()}
           </div>
-          <Guide />
+          <div style={{ marginTop:80 }}><Guide /></div>
           <div style={{ fontSize:13, color:'#475569', marginTop:8, textAlign:'center' }}>{t('footer')}</div>
         </div>
       </div>
